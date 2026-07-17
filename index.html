@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ATS Pro — Análisis real de CV con IA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    :root {
+      --bg:#07090f; --surface:#0d1117; --surface2:#131820; --border:#1e2733; --border2:#2a3547;
+      --text:#dce6f0; --muted:#5a7080; --muted2:#7a90a0; --accent:#00e5a0; --accent2:#00b87a;
+      --warn:#f0a940; --bad:#f05060; --info:#4ab8f0; --purple:#a78bfa; --pink:#f472b6;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");opacity:.4}
+    .wrap{max-width:1340px;margin:0 auto;padding:32px 24px;position:relative;z-index:1}
+
+    /* HEADER */
+    .header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:36px;gap:20px}
+    .header-right{display:flex;gap:8px;align-items:center;flex-shrink:0}
+    .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.2);border-radius:999px;padding:4px 12px;font-size:11px;font-family:'DM Mono',monospace;color:var(--accent);letter-spacing:.06em;margin-bottom:12px;text-transform:uppercase}
+    .badge::before{content:'●';font-size:8px;animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .key-status{display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:6px 12px;font-size:11px;font-family:'DM Mono',monospace;color:var(--muted2);cursor:pointer;transition:all .15s}
+    .key-status:hover{border-color:var(--border2);color:var(--text)}
+    .key-status.active{border-color:rgba(0,229,160,.3);color:var(--accent)}
+    .key-status .dot{width:6px;height:6px;border-radius:50%;background:var(--bad)}
+    .key-status.active .dot{background:var(--accent)}
+    h1{font-family:'Syne',sans-serif;font-size:clamp(28px,4vw,46px);font-weight:800;line-height:1.05;letter-spacing:-.02em;background:linear-gradient(135deg,#dce6f0 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .subtitle{color:var(--muted2);font-size:14px;line-height:1.6;margin-top:8px;max-width:560px}
+
+    /* API BANNER */
+    .api-banner{background:rgba(240,169,64,.06);border:1px solid rgba(240,169,64,.25);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:16px;font-size:13px;color:var(--warn);cursor:pointer;transition:background .15s}
+    .api-banner:hover{background:rgba(240,169,64,.1)}
+    .api-banner.hidden{display:none}
+    .api-banner-icon{font-size:16px;flex-shrink:0}
+    .api-banner-text strong{display:block;font-weight:600}
+    .api-banner-text span{font-size:12px;color:var(--muted2)}
+
+    /* INPUT GRID */
+    .input-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;transition:border-color .2s;position:relative}
+    .card:focus-within{border-color:var(--border2)}
+    .card.drag-over{border-color:var(--accent2);background:rgba(0,229,160,.04)}
+    .card.drag-over::after{content:'📄 Suelta aquí';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--accent);background:rgba(7,9,15,.88);border-radius:16px;z-index:10;pointer-events:none;border:2px dashed var(--accent2)}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);display:flex;align-items:center;gap:8px}
+    .card-title .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block}
+    .word-count{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);transition:color .2s}
+    .word-count.ok{color:var(--accent)}
+    .word-count.warn{color:var(--warn)}
+
+    /* URL ROW */
+    .url-row{display:flex;gap:6px;margin-bottom:10px}
+    .url-input{flex:1;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color .2s;min-width:0}
+    .url-input:focus{border-color:var(--accent2)}
+    .url-input::placeholder{color:var(--muted)}
+    .btn-url{display:inline-flex;align-items:center;gap:5px;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0}
+    .btn-url:hover{border-color:var(--info);color:var(--info)}
+    .btn-url:disabled{opacity:.5;cursor:not-allowed}
+
+    textarea{width:100%;height:230px;resize:vertical;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:12.5px;line-height:1.65;transition:border-color .2s,box-shadow .2s;outline:none}
+    textarea:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(0,229,160,.07)}
+    textarea::placeholder{color:var(--muted)}
+    .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    button,.file-label{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:10px;border:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;text-decoration:none;white-space:nowrap}
+    .btn-primary{background:var(--accent);color:#031a10;font-weight:700;font-size:14px;padding:12px 24px;box-shadow:0 0 24px rgba(0,229,160,.2)}
+    .btn-primary:hover{background:#00ffb0;box-shadow:0 0 32px rgba(0,229,160,.35)}
+    .btn-primary:disabled{background:var(--border2);color:var(--muted);cursor:not-allowed;box-shadow:none}
+    .btn-ghost{background:var(--surface2);color:var(--muted2);border:1px solid var(--border)}
+    .btn-ghost:hover{border-color:var(--border2);color:var(--text)}
+    input[type="file"]{display:none}
+
+    /* GLOBAL PROGRESS */
+    .global-progress{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:16px;display:none}
+    .global-progress.show{display:block}
+    .progress-steps{display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap}
+    .progress-step{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;transition:color .3s}
+    .progress-step.active{color:var(--accent)}
+    .progress-step.done{color:var(--muted2)}
+    .progress-step .step-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);transition:background .3s,box-shadow .3s;flex-shrink:0}
+    .progress-step.active .step-dot{background:var(--accent);box-shadow:0 0 6px rgba(0,229,160,.5)}
+    .progress-step.done .step-dot{background:var(--muted)}
+    .progress-track-global{height:3px;background:var(--border);border-radius:999px;overflow:hidden}
+    .progress-fill-global{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:999px;transition:width .5s cubic-bezier(.4,0,.2,1);width:0%}
+
+    /* SCORE CARDS */
+    .scores-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;opacity:0;transform:translateY(12px);transition:opacity .4s,transform .4s}
+    .scores-row.visible{opacity:1;transform:translateY(0)}
+    .score-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;position:relative;overflow:hidden}
+    .score-card.ats::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(0,229,160,.1),transparent 70%);pointer-events:none}
+    .score-card.recruiter::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(167,139,250,.12),transparent 70%);pointer-events:none}
+    .score-card>*{position:relative;z-index:1}
+    .score-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+    .score-card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+    .score-card.ats .score-card-title{color:var(--accent)}
+    .score-card.recruiter .score-card-title{color:var(--purple)}
+    .score-card-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px}
+    .score-card.ats .score-card-icon{background:rgba(0,229,160,.1);border:1px solid rgba(0,229,160,.25)}
+    .score-card.recruiter .score-card-icon{background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25)}
+    .score-card-num{font-family:'Syne',sans-serif;font-size:72px;font-weight:800;line-height:1;margin-bottom:6px}
+    .score-card.ats .score-card-num{color:var(--accent);text-shadow:0 0 40px rgba(0,229,160,.4)}
+    .score-card.recruiter .score-card-num{color:var(--purple);text-shadow:0 0 40px rgba(167,139,250,.4)}
+    .score-card-num-small{font-size:28px;font-weight:600;color:var(--muted);margin-left:4px}
+    .score-card-verdict{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;margin-top:4px}
+    .score-card-reason{font-size:13px;color:var(--muted2);line-height:1.55;margin-top:10px}
+    .score-card.recruiter .progress-fill{background:linear-gradient(90deg,var(--bad),var(--warn),var(--purple))}
+    .progress-track{height:6px;background:var(--surface2);border-radius:999px;overflow:hidden;width:100%;border:1px solid var(--border)}
+    .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--bad),var(--warn),var(--accent));transition:width .6s cubic-bezier(.4,0,.2,1)}
+
+    /* BOTTOM GRID */
+    .bottom-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;opacity:0;transform:translateY(12px);transition:opacity .4s .1s,transform .4s .1s}
+    .bottom-grid.visible{opacity:1;transform:translateY(0)}
+    .analyze-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:16px}
+    .mini-metric{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+    .mini-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted2);margin-bottom:8px}
+    .mini-head strong{font-size:13px;font-weight:600;color:var(--text)}
+    .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+    .chip{font-family:'DM Mono',monospace;font-size:11px;padding:4px 10px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);color:var(--muted2)}
+    .chip.good{border-color:rgba(0,229,160,.3);color:var(--accent);background:rgba(0,229,160,.05)}
+    .chip.bad{border-color:rgba(240,80,96,.3);color:var(--bad);background:rgba(240,80,96,.05)}
+    .chip.warn{border-color:rgba(240,169,64,.3);color:var(--warn);background:rgba(240,169,64,.05)}
+    .chip.info{border-color:rgba(74,184,240,.3);color:var(--info);background:rgba(74,184,240,.05)}
+    .chip.purple{border-color:rgba(167,139,250,.3);color:var(--purple);background:rgba(167,139,250,.06)}
+    .check-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+    .check-item:last-child{border-bottom:none}
+    .check-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+    .check-name{font-weight:500;color:var(--text)}
+    .check-detail{font-size:12px;color:var(--muted2);margin-top:2px}
+    .priority-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;margin:0 4px 6px 0;border:1px solid}
+    .priority-pill.high{color:#fca5a5;background:rgba(127,29,29,.3);border-color:rgba(240,80,96,.25)}
+    .priority-pill.medium{color:#fde68a;background:rgba(120,53,15,.3);border-color:rgba(240,169,64,.25)}
+    .priority-pill.low{color:#a7f3d0;background:rgba(20,83,45,.3);border-color:rgba(0,229,160,.25)}
+    .kw-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    .kw-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px}
+    .kw-box-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+
+    /* RECRUITER CARD */
+    .recruiter-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;margin-top:16px;opacity:0;transform:translateY(12px);transition:opacity .4s .2s,transform .4s .2s}
+    .recruiter-card.visible{opacity:1;transform:translateY(0)}
+    .recruiter-card h3{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+    .job-summary-box{background:var(--surface2);border-left:3px solid var(--purple);border-radius:10px;padding:16px 18px;margin-bottom:20px;font-size:14px;line-height:1.7;color:var(--text)}
+    .job-summary-box .label{font-size:11px;color:var(--purple);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:block}
+    .section-label{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--purple);margin:22px 0 10px;display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid rgba(167,139,250,.15)}
+    .section-label .count{background:rgba(167,139,250,.12);color:var(--purple);font-family:'DM Mono',monospace;font-size:11px;padding:2px 8px;border-radius:999px;font-weight:500}
+    .focus-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+    .focus-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;transition:border-color .2s}
+    .focus-card:hover{border-color:var(--border2)}
+    .focus-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--text);display:flex;align-items:center;gap:8px}
+    .focus-title::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
+    .focus-row{font-size:12.5px;line-height:1.55}
+    .focus-row strong{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted2);font-weight:600;margin-bottom:3px}
+    .focus-row .text{color:var(--text)}
+    .focus-row.prepare strong{color:var(--accent)}
+    .question-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:10px;transition:border-color .2s}
+    .question-card:hover{border-color:var(--border2)}
+    .question-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+    .question-num{background:rgba(244,114,182,.12);color:var(--pink);font-family:'DM Mono',monospace;font-weight:700;font-size:12px;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(244,114,182,.25)}
+    .question-text{font-size:14.5px;line-height:1.5;color:var(--text);font-weight:500;flex:1}
+    .question-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-left:36px}
+    .question-meta-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+    .question-meta-label{font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;margin-bottom:4px;font-family:'DM Sans',sans-serif}
+    .question-meta-label.intent{color:var(--info)}
+    .question-meta-label.tip{color:var(--accent)}
+    .question-meta-text{font-size:12.5px;line-height:1.55;color:var(--muted2)}
+
+    /* AI REPORT */
+    .ai-report-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;margin-top:16px;opacity:0;transform:translateY(12px);transition:opacity .4s .3s,transform .4s .3s}
+    .ai-report-card.visible{opacity:1;transform:translateY(0)}
+    .ai-report-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+    .ai-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.2);border-radius:999px;padding:5px 14px;font-size:11px;color:var(--purple);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em}
+    .ai-content{min-height:200px;font-size:14px;line-height:1.75;color:var(--text)}
+    .ai-content.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--muted2);min-height:260px}
+    .spinner{width:36px;height:36px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .ai-section{margin-bottom:24px}
+    .ai-section-title{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:var(--accent);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(0,229,160,.12);display:flex;align-items:center;gap:8px}
+    .ai-paragraph{margin-bottom:10px;color:var(--muted2);font-size:13.5px}
+    .ai-list{list-style:none;padding:0}
+    .ai-list li{padding:7px 0 7px 22px;position:relative;font-size:13.5px;color:var(--muted2);line-height:1.6;border-bottom:1px solid rgba(30,39,51,.6)}
+    .ai-list li:last-child{border-bottom:none}
+    .ai-list li::before{content:'▸';position:absolute;left:2px;color:var(--accent);font-size:11px;top:9px}
+    .ai-list li strong{color:var(--text);font-weight:500}
+    .ba-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12.5px;font-family:'DM Mono',monospace;line-height:1.5}
+
+    /* TABS */
+    .tabs{display:flex;gap:4px;margin-bottom:20px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+    .tabs::-webkit-scrollbar{display:none}
+    .tab{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;color:var(--muted2);transition:all .15s;background:none;white-space:nowrap;flex-shrink:0}
+    .tab.active{background:var(--surface2);border-color:var(--border2);color:var(--text)}
+    .tab-pane{display:none}
+    .tab-pane.active{display:block}
+    .copy-btn{background:var(--surface2);color:var(--muted2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer}
+    .copy-btn:hover{border-color:var(--border2);color:var(--text)}
+    .rewrite-section{margin-top:20px}
+
+    /* MODAL */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(5,7,12,.85);display:none;align-items:center;justify-content:center;z-index:100;padding:20px;backdrop-filter:blur(6px)}
+    .modal-backdrop.show{display:flex}
+    .modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:28px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+    .modal h3{font-family:'Syne',sans-serif;font-weight:700;font-size:20px;margin-bottom:8px}
+    .modal p{color:var(--muted2);font-size:13px;line-height:1.6;margin-bottom:14px}
+    .modal input[type="password"]{width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-family:'DM Mono',monospace;font-size:13px;outline:none;transition:border-color .2s}
+    .modal input:focus{border-color:var(--accent2)}
+    .modal-warn{font-size:11.5px;color:var(--warn);background:rgba(240,169,64,.06);border:1px solid rgba(240,169,64,.2);border-radius:8px;padding:10px 12px;margin-top:12px;line-height:1.55}
+    .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+
+    /* WELCOME MODAL */
+    .welcome-backdrop{position:fixed;inset:0;background:rgba(5,7,12,.92);display:flex;align-items:center;justify-content:center;z-index:300;padding:20px;backdrop-filter:blur(8px)}
+    .welcome-backdrop.hidden{display:none}
+    .welcome-box{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:36px;max-width:480px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,.7);animation:welcome-in .3s ease-out}
+    @keyframes welcome-in{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+    .welcome-logo{font-size:40px;text-align:center;margin-bottom:16px}
+    .welcome-title{font-family:'Syne',sans-serif;font-weight:800;font-size:24px;text-align:center;margin-bottom:6px;background:linear-gradient(135deg,#dce6f0,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .welcome-sub{font-size:13px;color:var(--muted2);text-align:center;margin-bottom:28px;line-height:1.6}
+    .welcome-field{margin-bottom:14px}
+    .welcome-field label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted2);margin-bottom:6px;font-family:'DM Mono',monospace}
+    .welcome-field input,.welcome-field textarea{width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s}
+    .welcome-field input:focus,.welcome-field textarea:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(0,229,160,.07)}
+    .welcome-field input::placeholder,.welcome-field textarea::placeholder{color:var(--muted)}
+    .welcome-field textarea{resize:vertical;min-height:80px}
+    .welcome-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .welcome-btn{width:100%;background:var(--accent);color:#031a10;font-family:'Syne',sans-serif;font-weight:800;font-size:15px;padding:14px;border-radius:12px;border:none;cursor:pointer;margin-top:8px;transition:all .15s;box-shadow:0 0 24px rgba(0,229,160,.25)}
+    .welcome-btn:hover{background:#00ffb0;box-shadow:0 0 36px rgba(0,229,160,.4)}
+    .welcome-btn:disabled{background:var(--border2);color:var(--muted);cursor:not-allowed;box-shadow:none}
+    .welcome-privacy{font-size:11px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5}
+
+    /* LIMIT BANNER */
+    .limit-banner{position:fixed;inset:0;background:rgba(5,7,12,.92);display:none;align-items:center;justify-content:center;z-index:300;padding:20px;backdrop-filter:blur(8px)}
+    .limit-banner.show{display:flex}
+    .limit-box{background:var(--surface);border:1px solid rgba(240,80,96,.3);border-radius:20px;padding:36px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,.7)}
+    .limit-icon{font-size:48px;margin-bottom:16px}
+    .limit-title{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;margin-bottom:10px;color:var(--bad)}
+    .limit-msg{font-size:13px;color:var(--muted2);line-height:1.7}
+
+    /* FEEDBACK BUTTON */
+    .fab-feedback{position:fixed;bottom:24px;left:24px;background:var(--surface2);border:1px solid var(--border2);border-radius:999px;padding:10px 16px;font-size:12px;font-family:'DM Mono',monospace;color:var(--muted2);cursor:pointer;z-index:150;transition:all .15s;display:flex;align-items:center;gap:6px}
+    .fab-feedback:hover{border-color:var(--accent);color:var(--accent)}
+
+    /* TOASTS */
+    .toast-container{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:200;pointer-events:none}
+    .toast{display:flex;align-items:flex-start;gap:10px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:12px 16px;font-size:13px;line-height:1.4;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:toast-in .25s ease-out forwards;pointer-events:all;cursor:pointer}
+    .toast.removing{animation:toast-out .2s ease-in forwards}
+    @keyframes toast-in{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+    @keyframes toast-out{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(8px)}}
+    .toast-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+    .toast-body strong{display:block;font-weight:600;margin-bottom:2px}
+    .toast-body span{color:var(--muted2);font-size:12px}
+    .toast.success{border-color:rgba(0,229,160,.3)}
+    .toast.error{border-color:rgba(240,80,96,.3)}
+    .toast.warning{border-color:rgba(240,169,64,.3)}
+    .toast.info{border-color:rgba(74,184,240,.3)}
+
+    /* MISC */
+    .file-loading{font-size:12px;color:var(--accent);font-family:'DM Mono',monospace;margin-left:4px}
+    .skeleton{background:linear-gradient(90deg,var(--surface2) 0%,var(--border) 50%,var(--surface2) 100%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .hint{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.5}
+    .streaming-cursor::after{content:'▋';animation:blink .7s step-end infinite;color:var(--accent)}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+    @media(max-width:900px){
+      .input-grid,.bottom-grid,.scores-row{grid-template-columns:1fr}
+      .kw-grid{grid-template-columns:1fr}
+      .question-meta{grid-template-columns:1fr;padding-left:0}
+      .header{flex-direction:column}
+    }
+    @media print{
+      body{background:white;color:black}
+      body::before{display:none}
+      .btn-row,.tabs,textarea,.input-grid,.header-right,#analyzeBtn,#resetBtn,.copy-btn,.modal-backdrop,.toast-container,.api-banner,.global-progress,.url-row{display:none!important}
+      .card,.analyze-panel,.ai-report-card,.score-card,.recruiter-card,.focus-card,.question-card{border:1px solid #ddd!important;box-shadow:none;background:white!important;color:black!important}
+      .score-card-num,.ai-section-title,.check-name,.section-label,.recruiter-card h3,.question-text,.focus-title{color:#111!important;-webkit-text-fill-color:#111!important;text-shadow:none!important}
+      .ai-paragraph,.check-detail,.ai-list li,.question-meta-text,.focus-row .text{color:#333!important}
+      .tab-pane{display:block!important}
+      .scores-row,.bottom-grid,.recruiter-card,.ai-report-card{opacity:1!important;transform:none!important}
+    }
+  </style>
+</head>
+<body>
+<div class="toast-container" id="toastContainer"></div>
+<div class="wrap">
+
+  <div class="header">
+    <div class="header-left">
+      <div class="badge">ATS Pro · IA Real</div>
+      <h1>Análisis de CV<br>con Inteligencia Artificial</h1>
+      <p class="subtitle">Doble evaluación: filtro ATS automático + mirada real de reclutador. Resumen del cargo, foco de preparación y preguntas probables de entrevista.</p>
+    </div>
+    <div class="header-right">
+      <button class="key-status" id="keyStatusBtn" aria-label="Configurar API key">
+        <span class="dot"></span><span id="keyStatusText">Sin API key</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="api-banner" id="apiBanner" onclick="openKeyModal()">
+    <span class="api-banner-icon">🔑</span>
+    <div class="api-banner-text">
+      <strong>Configura tu API key de Anthropic para comenzar</strong>
+      <span>Necesitas una key de console.anthropic.com → API Keys. Se guarda solo en tu navegador.</span>
+    </div>
+    <span style="margin-left:auto;color:var(--muted2);font-size:12px">Configurar →</span>
+  </div>
+
+  <div class="input-grid">
+    <div class="card" id="cvCard">
+      <div class="card-header">
+        <div class="card-title"><span class="dot"></span>Tu CV</div>
+        <span class="word-count" id="cvWordCount">0 palabras</span>
+      </div>
+      <div class="url-row">
+        <input type="url" class="url-input" id="cvUrl" placeholder="URL de LinkedIn, portfolio u otra página con tu CV…"/>
+        <button class="btn-url" id="cvUrlBtn">🔗 Cargar URL</button>
+      </div>
+      <textarea id="cvText" placeholder="Pega el texto de tu CV, arrastra un PDF/TXT, o carga desde URL arriba…"></textarea>
+      <div class="btn-row">
+        <label class="file-label btn-ghost" for="cvFile">📄 PDF / TXT</label>
+        <input id="cvFile" type="file" accept=".pdf,.txt,.md"/>
+        <button class="btn-ghost" id="sampleCvBtn">Ejemplo</button>
+        <button class="btn-ghost" id="clearCvBtn">Limpiar</button>
+        <span class="file-loading" id="cvFileStatus"></span>
+      </div>
+      <p class="hint">Acepta PDF (texto), TXT, Markdown o URL. Arrastra archivos directamente.</p>
+    </div>
+
+    <div class="card" id="jobCard">
+      <div class="card-header">
+        <div class="card-title"><span class="dot" style="background:var(--info)"></span>Descripción del puesto</div>
+        <span class="word-count" id="jobWordCount">0 palabras</span>
+      </div>
+      <div class="url-row">
+        <input type="url" class="url-input" id="jobUrl" placeholder="Pega el link de la publicación (LinkedIn, Indeed, portal de empleo…)"/>
+        <button class="btn-url" id="jobUrlBtn">🔗 Cargar URL</button>
+      </div>
+      <textarea id="jobText" placeholder="Pega la oferta laboral, arrastra un PDF, o carga desde el link arriba…"></textarea>
+      <div class="btn-row">
+        <label class="file-label btn-ghost" for="jobFile">📄 PDF / TXT</label>
+        <input id="jobFile" type="file" accept=".pdf,.txt,.md"/>
+        <button class="btn-ghost" id="sampleJobBtn">Ejemplo</button>
+        <button class="btn-ghost" id="clearJobBtn">Limpiar</button>
+        <span class="file-loading" id="jobFileStatus"></span>
+      </div>
+      <p class="hint">Mientras más contexto de la oferta, mejor evaluación.</p>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+    <button class="btn-primary" id="analyzeBtn">⚡ Analizar con IA</button>
+    <button class="btn-ghost" id="resetBtn">↺ Reiniciar</button>
+    <span id="statusMsg" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace"></span>
+  </div>
+
+  <div class="global-progress" id="globalProgress">
+    <div class="progress-steps">
+      <div class="progress-step" id="step1"><span class="step-dot"></span>Análisis ATS</div>
+      <div class="progress-step" id="step2"><span class="step-dot"></span>Vista reclutador</div>
+      <div class="progress-step" id="step3"><span class="step-dot"></span>Informe profundo</div>
+      <div class="progress-step" id="step4"><span class="step-dot"></span>Completado</div>
+    </div>
+    <div class="progress-track-global"><div class="progress-fill-global" id="progressFillGlobal"></div></div>
+  </div>
+
+  <div class="scores-row" id="scoresRow" style="display:none">
+    <div class="score-card ats">
+      <div class="score-card-header"><div class="score-card-title"><span class="score-card-icon">🤖</span>ATS · Filtro automático</div></div>
+      <div><span class="score-card-num" id="atsScore">—</span><span class="score-card-num-small">/100</span></div>
+      <div class="score-card-verdict" id="atsVerdict" style="color:var(--accent)">—</div>
+      <div class="score-card-reason" id="atsReason">Ejecuta el análisis para ver el puntaje.</div>
+      <div class="progress-track" style="margin-top:14px"><div class="progress-fill" id="atsBar"></div></div>
+    </div>
+    <div class="score-card recruiter">
+      <div class="score-card-header"><div class="score-card-title"><span class="score-card-icon">👤</span>Reclutador · Mirada humana</div></div>
+      <div><span class="score-card-num" id="recruiterScore">—</span><span class="score-card-num-small">/100</span></div>
+      <div class="score-card-verdict" id="recruiterVerdict" style="color:var(--purple)">—</div>
+      <div class="score-card-reason" id="recruiterReason">La IA estimará la probabilidad de que te llamen.</div>
+      <div class="progress-track" style="margin-top:14px"><div class="progress-fill" id="recruiterBar"></div></div>
+    </div>
+  </div>
+
+  <div class="bottom-grid" id="metricsGrid" style="display:none">
+    <div class="analyze-panel">
+      <div class="mini-metric">
+        <div class="mini-head"><strong>Secciones detectadas</strong><span id="sectionsScore">0/6</span></div>
+        <div class="chips" id="sectionsChips"></div>
+      </div>
+      <div class="mini-metric">
+        <div class="mini-head"><strong>Datos de contacto</strong><span id="contactScore">0/4</span></div>
+        <div class="chips" id="contactChips"></div>
+      </div>
+      <div class="mini-metric">
+        <div class="mini-head"><strong>Cobertura de keywords</strong><span id="keywordCoverage">0%</span></div>
+        <div class="progress-track"><div class="progress-fill" id="keywordBar"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--warn)"></span>Palabras clave</div>
+      <div class="kw-grid">
+        <div class="kw-box"><div class="kw-box-title" style="color:var(--accent)">✓ Presentes</div><div class="chips" id="matchedKeywords"></div></div>
+        <div class="kw-box"><div class="kw-box-title" style="color:var(--bad)">✗ Faltan</div><div class="chips" id="missingKeywords"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--purple)"></span>Chequeos & Prioridades</div>
+      <div id="checks"></div>
+      <div style="margin-top:14px">
+        <div class="card-title" style="margin-bottom:8px"><span class="dot" style="background:var(--warn)"></span>Prioridades</div>
+        <div id="priorityPills"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="recruiter-card" id="recruiterCard" style="display:none">
+    <h3>🎯 <span>Vista del reclutador & Preparación</span></h3>
+    <div class="job-summary-box">
+      <span class="label">Resumen del cargo</span>
+      <div id="jobSummaryText" class="skeleton" style="height:60px"></div>
+    </div>
+    <div class="section-label">🔍 Qué busca la empresa <span class="count" id="lookingForCount">—</span></div>
+    <div class="chips" id="lookingForChips"></div>
+    <div class="section-label">⭐ Focos de preparación <span class="count" id="focusCount">—</span></div>
+    <div class="focus-grid" id="focusGrid">
+      <div class="skeleton" style="height:120px"></div>
+      <div class="skeleton" style="height:120px"></div>
+      <div class="skeleton" style="height:120px"></div>
+    </div>
+    <div class="section-label">💬 Preguntas probables de entrevista <span class="count" id="questionsCount">—</span></div>
+    <div id="questionsList">
+      <div class="skeleton" style="height:90px;margin-bottom:10px"></div>
+      <div class="skeleton" style="height:90px;margin-bottom:10px"></div>
+      <div class="skeleton" style="height:90px"></div>
+    </div>
+  </div>
+
+  <div class="ai-report-card" id="aiReportCard" style="display:none">
+    <div class="ai-report-header">
+      <div>
+        <div class="ai-badge">🤖 Claude · Análisis profundo</div>
+        <h2 style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;margin-top:10px">Informe & herramientas de mejora</h2>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="copy-btn" id="copyReportBtn">📋 Copiar informe</button>
+        <button class="copy-btn" id="printReportBtn">🖨 Imprimir</button>
+      </div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="analisis" role="tab">📊 Informe profundo</button>
+      <button class="tab" data-tab="reescritura" role="tab">✏️ Reescritura de bullets</button>
+      <button class="tab" data-tab="carta" role="tab">💌 Carta de presentación</button>
+    </div>
+    <div class="tab-pane active" id="tab-analisis" role="tabpanel">
+      <div class="ai-content" id="aiContent"><div style="color:var(--muted);font-size:13px">Ejecuta el análisis para ver el informe de IA.</div></div>
+    </div>
+    <div class="tab-pane" id="tab-reescritura" role="tabpanel">
+      <p style="font-size:13px;color:var(--muted2);margin-bottom:14px">Pega un bullet o párrafo de tu CV y la IA lo reescribe con mayor impacto orientado a la vacante.</p>
+      <div class="rewrite-section">
+        <textarea id="rewriteInput" placeholder="Ej: Responsable de atención al cliente y gestión de reclamos..." style="height:100px"></textarea>
+        <div class="btn-row" style="margin-top:8px">
+          <button class="btn-primary" id="rewriteBtn" style="font-size:13px;padding:10px 18px">✨ Reescribir con IA</button>
+        </div>
+        <div id="rewriteOutput" style="margin-top:16px;display:none">
+          <div class="kw-box-title" style="color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Versión mejorada</div>
+          <div id="rewriteResult" class="ba-box" style="background:rgba(0,229,160,.04);border-color:rgba(0,229,160,.2);font-family:'DM Sans',sans-serif;font-size:13.5px;color:var(--text)"></div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-pane" id="tab-carta" role="tabpanel">
+      <p style="font-size:13px;color:var(--muted2);margin-bottom:14px">Genera una carta de presentación personalizada basada en tu CV y la vacante.</p>
+      <button class="btn-primary" id="cartaBtn" style="font-size:13px;padding:10px 18px">📝 Generar carta de presentación</button>
+      <div id="cartaOutput" style="margin-top:20px;display:none"><div class="ai-content" id="cartaContent"></div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-backdrop" id="keyModal" role="dialog" aria-labelledby="keyModalTitle">
+  <div class="modal">
+    <h3 id="keyModalTitle">🔑 Configurar API key de Anthropic</h3>
+    <p>Para que Claude pueda analizar tu CV necesitas una API key de Anthropic. Obtenla en <strong>console.anthropic.com</strong> → API Keys.</p>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false"/>
+    <div class="modal-warn">⚠️ Tu key se guarda <strong>solo en este navegador</strong> (sessionStorage). No se envía a ningún servidor propio. No uses este archivo en páginas públicas compartidas.</div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="keyCancelBtn">Cancelar</button>
+      <button class="btn-ghost" id="keyClearBtn" style="color:var(--bad);border-color:rgba(240,80,96,.3)">Borrar</button>
+      <button class="btn-primary" id="keySaveBtn" style="font-size:13px;padding:10px 18px">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- WELCOME MODAL -->
+<div class="welcome-backdrop" id="welcomeBackdrop">
+  <div class="welcome-box">
+    <div class="welcome-logo">🎯</div>
+    <div class="welcome-title">ATS CV Evaluator Pro</div>
+    <div class="welcome-sub">Antes de comenzar, cuéntanos quién eres. Solo necesitamos tu nombre para llevar un registro de usuarios.</div>
+    <div class="welcome-row">
+      <input class="welcome-field" id="wNombre" type="text" placeholder="Nombre" maxlength="60" autocomplete="given-name"/>
+      <input class="welcome-field" id="wApellido" type="text" placeholder="Apellido" maxlength="60" autocomplete="family-name"/>
+    </div>
+    <textarea class="welcome-field" id="wComment" placeholder="¿Tienes alguna sugerencia para mejorar la app? (opcional)" rows="3" maxlength="500" style="resize:vertical"></textarea>
+    <button class="welcome-btn" id="welcomeSubmitBtn">Comenzar →</button>
+    <div class="welcome-privacy">🔒 Solo registramos tu nombre para uso interno. No compartimos tus datos.</div>
+  </div>
+</div>
+
+<!-- LIMIT BANNER -->
+<div class="limit-banner hidden" id="limitBanner">
+  <div class="limit-box">
+    <div class="limit-icon">🚫</div>
+    <div>
+      <div class="limit-title">Límite de uso alcanzado</div>
+      <div class="limit-msg">Has utilizado los 5 análisis gratuitos disponibles. Puedes usar tu propia API key de Anthropic para continuar sin límite.</div>
+      <button class="btn-primary" style="margin-top:14px;font-size:13px" onclick="document.getElementById('limitBanner').classList.add('hidden');document.getElementById('keyModal').classList.remove('hidden')">Usar mi API key</button>
+    </div>
+  </div>
+</div>
+
+<!-- FEEDBACK FAB -->
+<button class="fab-feedback" id="fabFeedback" title="Enviar sugerencia" style="display:none">💬</button>
+
+<!-- FEEDBACK MINI MODAL -->
+<div class="welcome-backdrop hidden" id="feedbackBackdrop">
+  <div class="welcome-box" style="max-width:400px">
+    <div class="welcome-logo">💬</div>
+    <div class="welcome-title" style="font-size:18px">Enviar sugerencia</div>
+    <textarea class="welcome-field" id="fbComment" placeholder="¿Qué mejorarías de la app?" rows="4" maxlength="500" style="resize:vertical"></textarea>
+    <button class="welcome-btn" id="fbSubmitBtn">Enviar →</button>
+    <button class="btn-ghost" style="width:100%;margin-top:8px;font-size:13px" onclick="document.getElementById('feedbackBackdrop').classList.add('hidden')">Cancelar</button>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function reEscape(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+const stopwords=new Set(['de','la','el','en','y','a','con','para','por','del','las','los','un','una','o','al','se','que','su','sus','the','and','for','with','from','you','your','our','are','this','that','will','have','has','who','all','or','to','of','in','on','as','an','be','is','at','by','it','we','us','about','desde','hasta','como','más','pero','sin','sobre','entre','también','hay','así','muy','años','año']);
+function normalize(t){return t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9+#.\s/-]/g,' ').replace(/\s+/g,' ').trim()}
+function tokenize(t){return normalize(t).split(' ').filter(w=>w&&!stopwords.has(w)&&w.length>2)}
+function containsSkill(n,s){const ns=normalize(s);if(!ns)return false;return new RegExp('(^|[^a-z0-9+#])'+reEscape(ns)+'($|[^a-z0-9+#])').test(n)}
+const skillDict=['excel','power bi','sql','python','java','javascript','typescript','react','node','aws','azure','gcp','docker','kubernetes','git','jira','scrum','agile','salesforce','sap','tableau','powerpoint','crm','erp','linux','postgresql','mysql','mongodb','rest','api','machine learning','data analysis','gestión de proyectos','análisis de datos','atención al cliente','ventas','negociación','liderazgo','comunicación','trabajo en equipo','qa','testing','automatización','kpis','dashboards','reportes','mejora de procesos','marketing digital','figma','canva','servicenow','zendesk','hubspot','zoho','power automate','looker','dbt','airflow','spark','terraform','ansible','pandas','numpy','r','storytelling'];
+const sectionPatterns=[{key:'perfil',label:'Perfil',regex:/(perfil|resumen|summary|profile|objetivo profesional)/i},{key:'experiencia',label:'Experiencia',regex:/(experiencia|experience|trayectoria)/i},{key:'educacion',label:'Educación',regex:/(educaci[oó]n|education|formaci[oó]n)/i},{key:'habilidades',label:'Habilidades',regex:/(habilidades|skills|competencias)/i},{key:'idiomas',label:'Idiomas',regex:/(idiomas|languages)/i},{key:'certificaciones',label:'Certificaciones',regex:/(certificaciones|certifications|cursos)/i}];
+function extractKeywords(job){const norm=normalize(job);const found=skillDict.filter(s=>containsSkill(norm,s));const top=tokenize(job).reduce((acc,w)=>{acc[w]=(acc[w]||0)+1;return acc},{});const topTerms=Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,30).map(([t])=>t);return[...new Set([...found,...topTerms])].slice(0,30)}
+function chip(text,cls=''){const s=document.createElement('span');s.className='chip '+cls;s.textContent=text;return s}
+function renderChips(el,arr,cls){el.innerHTML='';arr.forEach(t=>el.appendChild(chip(t,cls)))}
+
+// TOAST
+function toast(title,detail='',type='info',duration=4000){const icons={success:'✅',error:'❌',warning:'⚠️',info:'ℹ️'};const t=document.createElement('div');t.className='toast '+type;t.innerHTML='<span class="toast-icon">'+icons[type]+'</span><div class="toast-body"><strong>'+esc(title)+'</strong>'+(detail?'<span>'+esc(detail)+'</span>':'')+'</div>';$('toastContainer').appendChild(t);const remove=()=>{t.classList.add('removing');t.addEventListener('animationend',()=>t.remove(),{once:true})};const timer=setTimeout(remove,duration);t.addEventListener('click',()=>{clearTimeout(timer);remove()})}
+
+// PROGRESS
+function setProgressStep(n){const ids=['step1','step2','step3','step4'];const pcts=[0,25,60,100];ids.forEach((id,i)=>{const el=$(id);el.classList.remove('active','done');if(i<n)el.classList.add('done');else if(i===n)el.classList.add('active')});$('progressFillGlobal').style.width=pcts[n]+'%'}
+
+// WORD COUNT
+function updateWordCount(tid,cid){const wc=$(tid).value.trim().split(/\s+/).filter(Boolean).length;const el=$(cid);el.textContent=wc+' palabras';el.classList.remove('ok','warn');if(wc>=250&&wc<=900)el.classList.add('ok');else if(wc>0)el.classList.add('warn')}
+$('cvText').addEventListener('input',()=>updateWordCount('cvText','cvWordCount'));
+$('jobText').addEventListener('input',()=>updateWordCount('jobText','jobWordCount'));
+
+// DRAG & DROP
+function setupDragDrop(cardId,textareaId,statusId){const card=$(cardId);let dc=0;card.addEventListener('dragenter',e=>{e.preventDefault();dc++;card.classList.add('drag-over')});card.addEventListener('dragleave',()=>{dc--;if(dc<=0){dc=0;card.classList.remove('drag-over')}});card.addEventListener('dragover',e=>e.preventDefault());card.addEventListener('drop',async e=>{e.preventDefault();dc=0;card.classList.remove('drag-over');const file=e.dataTransfer.files[0];if(file)await loadFileInto(file,textareaId,statusId)})}
+setupDragDrop('cvCard','cvText','cvFileStatus');
+setupDragDrop('jobCard','jobText','jobFileStatus');
+
+// URL FETCHER
+async function fetchUrlContent(url){const proxyUrl='https://api.allorigins.win/get?url='+encodeURIComponent(url);const res=await fetch(proxyUrl,{signal:AbortSignal.timeout(15000)});if(!res.ok)throw new Error('HTTP '+res.status);const data=await res.json();if(!data.contents)throw new Error('Contenido vacío');const tmp=document.createElement('div');tmp.innerHTML=data.contents;tmp.querySelectorAll('script,style,nav,footer,header').forEach(el=>el.remove());const text=(tmp.innerText||tmp.textContent||'').replace(/\n{3,}/g,'\n\n').replace(/[ \t]{2,}/g,' ').trim();if(text.length<100)throw new Error('No se pudo extraer texto suficiente. Intenta copiar y pegar manualmente.');return text}
+async function loadFromUrl(urlInputId,textareaId,btnId){const url=$(urlInputId).value.trim();if(!url){toast('URL vacía','Pega un enlace válido primero.','warning');return}if(!url.startsWith('http')){toast('URL inválida','Debe comenzar con http:// o https://','error');return}const btn=$(btnId);btn.disabled=true;btn.textContent='⏳ Cargando…';try{toast('Cargando URL…','Extrayendo contenido del sitio.','info',6000);const text=await fetchUrlContent(url);$(textareaId).value=text;$(textareaId).dispatchEvent(new Event('input'));toast('URL cargada',text.trim().split(/\s+/).length+' palabras extraídas.','success');$(urlInputId).value=''}catch(e){toast('Error al cargar URL',e.message,'error',6000)}finally{btn.disabled=false;btn.textContent='🔗 Cargar URL'}}
+$('cvUrlBtn').addEventListener('click',()=>loadFromUrl('cvUrl','cvText','cvUrlBtn'));
+$('jobUrlBtn').addEventListener('click',()=>loadFromUrl('jobUrl','jobText','jobUrlBtn'));
+$('cvUrl').addEventListener('keydown',e=>{if(e.key==='Enter')loadFromUrl('cvUrl','cvText','cvUrlBtn')});
+$('jobUrl').addEventListener('keydown',e=>{if(e.key==='Enter')loadFromUrl('jobUrl','jobText','jobUrlBtn')});
+
+// API KEY
+const KEY_STORAGE='ats_pro_anthropic_key';
+function getApiKey(){try{return sessionStorage.getItem(KEY_STORAGE)||''}catch{return''}}
+function setApiKey(k){try{sessionStorage.setItem(KEY_STORAGE,k)}catch{}updateKeyStatus()}
+function clearApiKey(){try{sessionStorage.removeItem(KEY_STORAGE)}catch{}updateKeyStatus()}
+function updateKeyStatus(){const k=getApiKey();if(k){$('keyStatusBtn').classList.add('active');$('keyStatusText').textContent='API key · '+k.slice(0,10)+'…';$('apiBanner').classList.add('hidden')}else{$('keyStatusBtn').classList.remove('active');$('keyStatusText').textContent='Sin API key';$('apiBanner').classList.remove('hidden')}}
+function openKeyModal(){$('apiKeyInput').value=getApiKey();$('keyModal').classList.add('show');setTimeout(()=>$('apiKeyInput').focus(),50)}
+function closeKeyModal(){$('keyModal').classList.remove('show')}
+$('keyStatusBtn').addEventListener('click',openKeyModal);
+$('keyCancelBtn').addEventListener('click',closeKeyModal);
+$('keySaveBtn').addEventListener('click',()=>{const val=$('apiKeyInput').value.trim();if(!val){toast('API key vacía','Ingresa una key válida.','error');return}setApiKey(val);closeKeyModal();toast('API key guardada','Claude está listo para analizar tu CV.','success')});
+$('keyClearBtn').addEventListener('click',()=>{clearApiKey();$('apiKeyInput').value='';toast('API key borrada','','info')});
+$('keyModal').addEventListener('click',e=>{if(e.target.id==='keyModal')closeKeyModal()});
+updateKeyStatus();
+
+// CLAUDE STREAM
+async function callClaudeStream(messages,onChunk,maxTokens=2000){const apiKey=getApiKey();if(!apiKey){openKeyModal();throw new Error('No hay API key configurada.')}const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:maxTokens,stream:true,messages})});if(!res.ok){const err=await res.text();let msg='API error '+res.status;try{const j=JSON.parse(err);if(j.error?.message)msg+=': '+j.error.message}catch{msg+=': '+err.slice(0,200)}if(res.status===401)msg+=' — verifica tu API key';throw new Error(msg)}const reader=res.body.getReader();const dec=new TextDecoder();let buf='';while(true){const{done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});const lines=buf.split('\n');buf=lines.pop();for(const line of lines){if(!line.startsWith('data: '))continue;const data=line.slice(6).trim();if(data==='[DONE]')return;try{const ev=JSON.parse(data);if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta')onChunk(ev.delta.text)}catch{}}}}
+
+// CLAUDE JSON
+function repairJson(s){s=s.replace(/,(\s*[}\]])/g,'$1');let out='',inStr=false,escape=false;for(const ch of s){if(escape){out+=ch;escape=false;continue}if(ch==='\\'){out+=ch;escape=true;continue}if(ch==='"'){inStr=!inStr;out+=ch;continue}if(inStr&&ch==='\n'){out+='\\n';continue}if(inStr&&ch==='\r'){out+='\\r';continue}if(inStr&&ch==='\t'){out+='\\t';continue}out+=ch}return out}
+async function callClaudeJson(messages,maxTokens=6000){const apiKey=getApiKey();if(!apiKey){openKeyModal();throw new Error('No hay API key configurada.')}const prefilledMessages=[...messages,{role:'assistant',content:'{'}];const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:maxTokens,messages:prefilledMessages})});if(!res.ok){const err=await res.text();let msg='API error '+res.status;try{const j=JSON.parse(err);if(j.error?.message)msg+=': '+j.error.message}catch{msg+=': '+err.slice(0,200)}throw new Error(msg)}const data=await res.json();if(data.stop_reason==='max_tokens')throw new Error('Respuesta cortada por límite de tokens. Acorta el CV/vacante.');let text=data.content?.[0]?.text||'';let jsonStr='{'+text;const lastBrace=jsonStr.lastIndexOf('}');if(lastBrace>0)jsonStr=jsonStr.slice(0,lastBrace+1);try{return JSON.parse(jsonStr)}catch{}try{return JSON.parse(repairJson(jsonStr))}catch(e2){console.error('JSON inválido:',jsonStr);throw new Error('JSON inválido de la IA. Reintenta el análisis.')}}
+
+// MARKDOWN RENDERER
+function renderMarkdownLite(text){let safe=esc(text);safe=safe.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');safe=safe.replace(/^## (.+)$/gm,'<__SO__><__ST__>$1</__ST__>').replace(/^### (.+)$/gm,'<__SB__>$1</__SB__>');const lines=safe.split('\n');let out='',inList=false;for(const line of lines){const trimmed=line.trim();const isBullet=/^[-•▸]\s+/.test(trimmed);if(isBullet){if(!inList){out+='<ul class="ai-list">';inList=true}out+='<li>'+trimmed.replace(/^[-•▸]\s+/,'')+'</li>'}else{if(inList){out+='</ul>';inList=false}if(trimmed)out+='<p class="ai-paragraph">'+line+'</p>'}}if(inList)out+='</ul>';out=out.replace(/<p class="ai-paragraph"><__SO__><__ST__>(.+?)<\/__ST__><\/p>/g,'<div class="ai-section"><div class="ai-section-title">$1</div>').replace(/<__SO__><__ST__>(.+?)<\/__ST__>/g,'<div class="ai-section"><div class="ai-section-title">$1</div>').replace(/<p class="ai-paragraph"><__SB__>(.+?)<\/__SB__><\/p>/g,'<div style="font-weight:600;color:var(--text);margin:10px 0 6px;font-size:13.5px">$1</div>').replace(/<__SB__>(.+?)<\/__SB__>/g,'<div style="font-weight:600;color:var(--text);margin:10px 0 6px;font-size:13.5px">$1</div>');const open=(out.match(/<div class="ai-section">/g)||[]).length;out+='</div>'.repeat(open);return out}
+function streamToElement(el){let raw='';el.classList.add('streaming-cursor');return{onChunk(t){raw+=t;el.innerHTML=renderMarkdownLite(raw)},done(){el.classList.remove('streaming-cursor');el.innerHTML=renderMarkdownLite(raw)},getRaw(){return raw}}}
+
+// RECRUITER VIEW
+function renderRecruiterView(data){const rScore=Math.max(0,Math.min(100,Number(data.recruiter_score)||0));$('recruiterScore').textContent=rScore;$('recruiterBar').style.width=rScore+'%';const verdict=data.recruiter_verdict||'—';let vc='var(--purple)';if(rScore>=75)vc='var(--accent)';else if(rScore>=40)vc='var(--warn)';else vc='var(--bad)';$('recruiterVerdict').style.color=vc;$('recruiterVerdict').textContent=verdict;$('recruiterReason').textContent=data.recruiter_reasoning||'';const sEl=$('jobSummaryText');sEl.classList.remove('skeleton');sEl.removeAttribute('style');sEl.textContent=data.job_summary||'No disponible.';const lf=Array.isArray(data.company_looking_for)?data.company_looking_for:[];$('lookingForCount').textContent=lf.length;const lcEl=$('lookingForChips');lcEl.innerHTML='';lf.forEach(item=>lcEl.appendChild(chip(String(item),'purple')));const fa=Array.isArray(data.focus_areas)?data.focus_areas:[];$('focusCount').textContent=fa.length;const fEl=$('focusGrid');fEl.innerHTML='';fa.forEach(f=>{const div=document.createElement('div');div.className='focus-card';div.innerHTML='<div class="focus-title">'+esc(f.title||'Sin título')+'</div><div class="focus-row"><strong>Por qué importa</strong><span class="text">'+esc(f.why||'')+'</span></div><div class="focus-row prepare"><strong>Cómo prepararte</strong><span class="text">'+esc(f.how_to_prepare||'')+'</span></div>';fEl.appendChild(div)});if(!fa.length)fEl.innerHTML='<div style="color:var(--muted2);font-size:13px">Sin áreas sugeridas.</div>';const qs=Array.isArray(data.interview_questions)?data.interview_questions:[];$('questionsCount').textContent=qs.length;const qEl=$('questionsList');qEl.innerHTML='';qs.forEach((q,i)=>{const div=document.createElement('div');div.className='question-card';div.innerHTML='<div class="question-header"><div class="question-num">'+(i+1)+'</div><div class="question-text">'+esc(q.question||'')+'</div></div><div class="question-meta"><div class="question-meta-box"><div class="question-meta-label intent">🎯 Qué evalúa</div><div class="question-meta-text">'+esc(q.intent||'')+'</div></div><div class="question-meta-box"><div class="question-meta-label tip">💡 Cómo responder</div><div class="question-meta-text">'+esc(q.tip||'')+'</div></div></div>';qEl.appendChild(div)});if(!qs.length)qEl.innerHTML='<div style="color:var(--muted2);font-size:13px">Sin preguntas sugeridas.</div>'}
+
+// PROMPTS
+function buildDeepPrompt(cv,job,q){const cvT=cv.length>12000?cv.slice(0,12000)+'\n\n[...CV truncado...]':cv;const jobT=job.length>6000?job.slice(0,6000)+'\n\n[...vacante truncada...]':job;return`Eres un experto en reclutamiento, ATS y desarrollo de carrera profesional. Analiza en profundidad el CV del candidato frente a la oferta.
+
+## CV DEL CANDIDATO
+${cvT}
+
+## DESCRIPCIÓN DEL PUESTO
+${jobT}
+
+## DATOS PREVIOS
+- Puntaje ATS: ${q.score}/100
+- Cobertura de keywords: ${q.keywordPct}%
+- Keywords presentes: ${q.matched.slice(0,15).join(', ')||'ninguna'}
+- Keywords faltantes: ${q.missing.slice(0,15).join(', ')||'ninguna'}
+
+## TAREA
+Análisis profundo y accionable en español, con estas secciones usando ## para títulos:
+
+## Diagnóstico general
+Párrafo breve (3-4 líneas) con el fit real, honesto y directo.
+
+## Fortalezas clave
+Lista 3-4 elementos del CV que mejor conectan con la vacante, específicos.
+
+## Brechas críticas
+Lista 3-5 brechas más importantes priorizadas por impacto.
+
+## Palabras clave que debes incorporar
+Explica cuáles keywords faltan y cómo integrarlas naturalmente.
+
+## Recomendaciones de reescritura
+2-3 ejemplos con formato:
+**Antes:** [texto original]
+**Después:** [versión mejorada]
+
+## Plan de acción prioritario
+4-5 acciones concretas ordenadas por impacto.`}
+
+function buildRecruiterJsonPrompt(cv,job,q){const cvT=cv.length>10000?cv.slice(0,10000)+'\n\n[...truncado...]':cv;const jobT=job.length>5000?job.slice(0,5000)+'\n\n[...truncado...]':job;return`Eres un reclutador senior con 15 años de experiencia. Evalúa al candidato.
+
+## CV
+${cvT}
+
+## PUESTO
+${jobT}
+
+## DATOS ATS
+- Score: ${q.score}/100 | Keywords: ${q.keywordPct}%
+- Presentes: ${q.matched.slice(0,10).join(', ')||'ninguna'}
+- Faltantes: ${q.missing.slice(0,10).join(', ')||'ninguna'}
+
+## INSTRUCCIONES
+Responde ÚNICAMENTE con JSON válido, sin markdown, sin texto extra.
+TODOS los strings en una sola línea. Sin trailing commas.
+
+{
+  "recruiter_score": <0-100>,
+  "recruiter_verdict": "<Muy probable|Probable|Posible|Poco probable|Muy poco probable>",
+  "recruiter_reasoning": "<máx 40 palabras>",
+  "job_summary": "<máx 45 palabras>",
+  "company_looking_for": ["<rasgo 1>","<rasgo 2>","<rasgo 3>","<rasgo 4>","<rasgo 5>"],
+  "focus_areas": [{"title":"<máx 6 palabras>","why":"<máx 25 palabras>","how_to_prepare":"<máx 30 palabras>"}],
+  "interview_questions": [{"question":"<máx 25 palabras>","intent":"<máx 20 palabras>","tip":"<máx 35 palabras>"}]
+}
+
+Reglas: recruiter_score considera fit técnico+cultural+claridad+logros+senioridad+red flags. focus_areas: EXACTAMENTE 4. interview_questions: EXACTAMENTE 6. company_looking_for: EXACTAMENTE 5. Todo en ESPAÑOL.`}
+
+// QUICK ANALYSIS
+function quickAnalyze(cv,job){const cvNorm=normalize(cv);const foundSections=sectionPatterns.filter(s=>s.regex.test(cv));const sectionMap=Object.fromEntries(sectionPatterns.map(s=>[s.key,s.regex.test(cv)]));renderChips($('sectionsChips'),foundSections.map(s=>s.label),'info');$('sectionsScore').textContent=foundSections.length+'/'+sectionPatterns.length;const email=/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(cv);const phone=/(\+?\d[\d\s().-]{7,}\d)/.test(cv);const linkedin=/(linkedin\.com\/|linkedin)/i.test(cv);const portfolio=/(github\.com\/|portfolio|behance|dribbble|website)/i.test(cv);const contactItems=[[email,'Email'],[phone,'Teléfono'],[linkedin,'LinkedIn'],[portfolio,'Portfolio/GitHub']];$('contactChips').innerHTML='';contactItems.forEach(([ok,label])=>$('contactChips').appendChild(chip(ok?label:'Falta '+label,ok?'good':'bad')));$('contactScore').textContent=contactItems.filter(([ok])=>ok).length+'/4';const keywords=extractKeywords(job);const matched=[],missing=[];keywords.forEach(k=>(containsSkill(cvNorm,k)?matched:missing).push(k));renderChips($('matchedKeywords'),matched,'good');renderChips($('missingKeywords'),missing,missing.length?'bad':'');const kPct=keywords.length?Math.round(matched.length/keywords.length*100):0;$('keywordCoverage').textContent=kPct+'%';$('keywordBar').style.width=kPct+'%';$('checks').innerHTML='';$('priorityPills').innerHTML='';const wc=cv.split(/\s+/).filter(Boolean).length;const hasBullets=/(^|\n)\s*[-•●▪◦▸]/m.test(cv);const hasDates=/(20\d{2}|19\d{2}|actualidad|presente|present)/i.test(cv);const longParagraphs=cv.split(/\n/).filter(p=>p.trim().split(/\s+/).length>90).length;const actionVerbs=/\b(lider[eé]|desarroll[eé]|implement[eé]|optimic[eé]|optimiz[aoó]|gestion[eé]|dise[ñn][eé]|analic[eé]|analiz[aoó]|coordin[eé]|reduj[eé]|aument[eé]|logr[eé]|construi|built|led|improved|developed|implemented|managed|reduced|increased|designed|created|automatic[eé]|automatiz[aoó])/i.test(cv);const quantifiable=/(\d+\s?%|\$\s?\d+|\d+\s?(usuarios|clientes|ventas|proyectos|años|meses|personas|horas|equipos|registros|reportes|dashboards|hrs))/i.test(cv);function addCheck(label,status,detail){const ok=status==='Bien';const div=document.createElement('div');div.className='check-item';div.innerHTML='<span class="check-icon">'+(ok?'✅':'⚠️')+'</span><div><div class="check-name" style="color:'+(ok?'var(--accent)':'var(--warn)')+'">'+esc(label)+'</div><div class="check-detail">'+esc(detail)+'</div></div>';$('checks').appendChild(div)}addCheck('Extensión',wc>=250&&wc<=900?'Bien':'Atención',wc+' palabras. Ideal: 300–800.');addCheck('Viñetas / formato',hasBullets?'Bien':'Atención',hasBullets?'Viñetas detectadas.':'Sin viñetas — recomendado para ATS.');addCheck('Cronología / fechas',hasDates?'Bien':'Atención',hasDates?'Fechas detectadas.':'Agrega años o rangos de fecha.');addCheck('Logros medibles',quantifiable?'Bien':'Atención',quantifiable?'Resultados cuantificados detectados.':'Agrega % o números de impacto.');addCheck('Verbos de acción',actionVerbs?'Bien':'Atención',actionVerbs?'Verbos de acción detectados.':'Usa: lideré, desarrollé, implementé…');addCheck('Párrafos compactos',longParagraphs===0?'Bien':'Atención',longParagraphs===0?'Sin párrafos muy largos.':longParagraphs+' párrafo(s) con más de 90 palabras.');const prios=[];if(missing.length)prios.push({label:'Palabras clave',level:'high'});if(!sectionMap.perfil)prios.push({label:'Perfil profesional',level:'high'});if(!sectionMap.habilidades)prios.push({label:'Sección habilidades',level:'high'});if(!quantifiable)prios.push({label:'Logros medibles',level:'high'});if(!hasBullets)prios.push({label:'Formato viñetas',level:'medium'});if(!hasDates)prios.push({label:'Fechas',level:'medium'});if(!linkedin)prios.push({label:'LinkedIn',level:'medium'});if(longParagraphs>0)prios.push({label:'Acortar párrafos',level:'low'});if(!actionVerbs)prios.push({label:'Verbos de acción',level:'low'});const order={high:0,medium:1,low:2};prios.sort((a,b)=>order[a.level]-order[b.level]).slice(0,6).forEach(p=>{const span=document.createElement('span');span.className='priority-pill '+p.level;span.textContent=(p.level==='high'?'● Alta':p.level==='medium'?'◐ Media':'○ Baja')+' · '+p.label;$('priorityPills').appendChild(span)});let score=0;score+=kPct*0.40;score+=(foundSections.length/sectionPatterns.length)*18;score+=([email,phone,linkedin,portfolio].filter(Boolean).length/4)*10;score+=hasBullets?6:0;score+=hasDates?6:0;score+=actionVerbs?6:0;score+=quantifiable?8:0;score+=longParagraphs===0?3:0;score+=wc>=250&&wc<=900?3:0;score=Math.max(0,Math.min(100,Math.round(score)));$('atsBar').style.width='0%';$('recruiterBar').style.width='0%';requestAnimationFrame(()=>requestAnimationFrame(()=>{$('atsScore').textContent=score;$('atsBar').style.width=score+'%'}));let vc,vs,vt;if(score>=80){vc='var(--accent)';vs='Muy competitivo';vt='Tu CV supera con holgura el filtro automático de la mayoría de ATS.'}else if(score>=65){vc='var(--warn)';vs='Competitivo';vt='Probablemente pasa el filtro ATS, pero con margen de mejora en keywords.'}else if(score>=50){vc='var(--warn)';vs='Ajuste medio';vt='El CV es legible, pero puede perder puntos en ATS estrictos.'}else{vc='var(--bad)';vs='Bajo ajuste';vt='Alto riesgo de ser filtrado antes de llegar a un humano.'};$('atsVerdict').style.color=vc;$('atsVerdict').textContent=vs;$('atsReason').textContent=vt;return{score,keywordPct:kPct,matched,missing,sectionMap,foundSections,email,phone,linkedin,portfolio,hasBullets,hasDates,actionVerbs,quantifiable,wordCount:wc,longParagraphs}}
+
+// MAIN ANALYZE
+let lastQuick=null;
+$('analyzeBtn').addEventListener('click',async()=>{const cv=$('cvText').value.trim();const job=$('jobText').value.trim();if(!cv||!job){toast('Faltan datos','Debes ingresar el CV y la descripción del puesto.','warning');return}if(!getApiKey()){toast('Sin API key','Configura tu API key de Anthropic primero.','error');openKeyModal();return}$('analyzeBtn').disabled=true;$('statusMsg').textContent='Analizando…';$('globalProgress').classList.add('show');setProgressStep(0);function showEl(id,display='grid'){const el=$(id);el.style.display=display;requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('visible')))}showEl('scoresRow');showEl('metricsGrid');showEl('recruiterCard','block');showEl('aiReportCard','block');setProgressStep(0);lastQuick=quickAnalyze(cv,job);toast('ATS calculado','Puntaje: '+lastQuick.score+'/100','info',3000);setProgressStep(1);$('recruiterScore').textContent='…';$('recruiterBar').style.width='0%';$('recruiterVerdict').textContent='Evaluando…';$('recruiterReason').textContent='Claude está evaluando desde la perspectiva de un reclutador humano…';$('jobSummaryText').className='skeleton';$('jobSummaryText').style.height='60px';$('jobSummaryText').textContent='';$('lookingForChips').innerHTML='';$('focusGrid').innerHTML='<div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div>';$('questionsList').innerHTML='<div class="skeleton" style="height:90px;margin-bottom:10px"></div><div class="skeleton" style="height:90px;margin-bottom:10px"></div><div class="skeleton" style="height:90px"></div>';const aiEl=$('aiContent');aiEl.className='ai-content loading';aiEl.innerHTML='<div class="spinner"></div><div>Claude está revisando tu CV en profundidad…</div>';const deepTask=(async()=>{try{setProgressStep(2);aiEl.className='ai-content';aiEl.innerHTML='';const streamer=streamToElement(aiEl);await callClaudeStream([{role:'user',content:buildDeepPrompt(cv,job,lastQuick)}],streamer.onChunk,2200);streamer.done()}catch(e){aiEl.className='ai-content';aiEl.innerHTML='<p style="color:var(--bad)">⚠️ '+esc(e.message)+'</p>';toast('Error en informe',e.message,'error',6000)}})();const recruiterTask=(async()=>{try{const data=await callClaudeJson([{role:'user',content:buildRecruiterJsonPrompt(cv,job,lastQuick)}],6000);renderRecruiterView(data)}catch(e){$('recruiterScore').textContent='—';$('recruiterVerdict').textContent='Error';$('recruiterVerdict').style.color='var(--bad)';$('recruiterReason').textContent='Error: '+e.message;$('jobSummaryText').classList.remove('skeleton');$('jobSummaryText').removeAttribute('style');$('jobSummaryText').textContent='No disponible.';$('focusGrid').innerHTML='<div style="color:var(--muted2);font-size:13px">Error al cargar focos.</div>';$('questionsList').innerHTML='<div style="color:var(--muted2);font-size:13px">Error al cargar preguntas.</div>';toast('Error en vista reclutador',e.message,'error',6000)}})();await Promise.all([deepTask,recruiterTask]);setProgressStep(3);$('statusMsg').textContent='✓ Análisis completo';$('analyzeBtn').disabled=false;toast('Análisis completo','Revisa el informe y los focos de preparación.','success');setTimeout(()=>{$('globalProgress').classList.remove('show');$('statusMsg').textContent=''},3000)});
+
+// REWRITE
+$('rewriteBtn').addEventListener('click',async()=>{const text=$('rewriteInput').value.trim();if(!text){toast('Texto vacío','Pega un bullet o párrafo a reescribir.','warning');return}if(!$('jobText').value.trim()){toast('Falta vacante','Primero pega la descripción del puesto.','warning');return}if(!getApiKey()){toast('Sin API key','Configura tu API key primero.','error');openKeyModal();return}$('rewriteBtn').disabled=true;$('rewriteBtn').textContent='✨ Reescribiendo…';$('rewriteOutput').style.display='block';const resultEl=$('rewriteResult');resultEl.textContent='';resultEl.classList.add('streaming-cursor');const prompt='Eres un experto en CVs de alto impacto. Reescribe el siguiente bullet/párrafo de CV para que sea más poderoso, específico y orientado a resultados. Usa verbos de acción fuertes, cuantifica cuando sea posible, y alinéalo con la vacante.\n\nVacante (contexto): '+$('jobText').value.trim().slice(0,600)+'\n\nTexto original: "'+text+'"\n\nResponde SOLO con la versión mejorada, sin explicaciones. Máximo 3 bullets.';try{let raw='';await callClaudeStream([{role:'user',content:prompt}],chunk=>{raw+=chunk;resultEl.textContent=raw},800);resultEl.classList.remove('streaming-cursor');toast('Bullet reescrito','Revisa la versión mejorada abajo.','success')}catch(e){resultEl.classList.remove('streaming-cursor');resultEl.textContent='Error: '+e.message;toast('Error',e.message,'error',5000)}$('rewriteBtn').disabled=false;$('rewriteBtn').textContent='✨ Reescribir con IA'});
+
+// CARTA
+$('cartaBtn').addEventListener('click',async()=>{const cv=$('cvText').value.trim();const job=$('jobText').value.trim();if(!cv||!job){toast('Faltan datos','Necesitas el CV y la vacante.','warning');return}if(!getApiKey()){toast('Sin API key','Configura tu API key primero.','error');openKeyModal();return}$('cartaBtn').disabled=true;$('cartaBtn').textContent='📝 Generando…';$('cartaOutput').style.display='block';const cartaEl=$('cartaContent');cartaEl.innerHTML='<div class="spinner" style="margin:20px auto"></div>';const prompt='Escribe una carta de presentación profesional en español basándote en el CV y la vacante.\n\nCV: '+cv.slice(0,2000)+'\n\nVacante: '+job.slice(0,1000)+'\n\nRequisitos:\n- 3 párrafos: apertura con gancho, cuerpo con 2-3 logros relevantes, cierre con llamada a acción\n- Humana, no genérica. Máximo 280 palabras. Incluye saludo y despedida.\n\nSolo la carta, sin comentarios.';try{cartaEl.innerHTML='';const streamer=streamToElement(cartaEl);await callClaudeStream([{role:'user',content:prompt}],streamer.onChunk,900);streamer.done();toast('Carta generada','Lista para personalizar y enviar.','success')}catch(e){cartaEl.innerHTML='<p style="color:var(--bad)">Error: '+esc(e.message)+'</p>';toast('Error',e.message,'error',5000)}$('cartaBtn').disabled=false;$('cartaBtn').textContent='📝 Generar carta de presentación'});
+
+// TABS
+document.querySelectorAll('.tab').forEach(tab=>{tab.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));tab.classList.add('active');$('tab-'+tab.dataset.tab).classList.add('active')})});
+
+// COPY/PRINT
+$('copyReportBtn').addEventListener('click',async()=>{const text=$('aiContent').innerText.trim();if(!text||text.includes('Ejecuta el análisis')){toast('Sin informe','Primero ejecuta un análisis.','warning');return}try{await navigator.clipboard.writeText(text);$('copyReportBtn').textContent='✓ Copiado';toast('Copiado','Informe copiado al portapapeles.','success',2500);setTimeout(()=>$('copyReportBtn').textContent='📋 Copiar informe',2000)}catch{toast('No se pudo copiar','Copia el texto manualmente.','error')}});
+$('printReportBtn').addEventListener('click',()=>{if($('aiContent').innerText.includes('Ejecuta')){toast('Sin informe','Primero ejecuta un análisis.','warning');return}window.print()});
+
+// PDF
+if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'}
+async function extractTextFromPdf(file){if(!window.pdfjsLib)throw new Error('pdf.js no cargado.');const ab=await file.arrayBuffer();const pdf=await pdfjsLib.getDocument({data:ab}).promise;let text='';for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i);const content=await page.getTextContent();let lastY=null,line='';for(const item of content.items){const y=item.transform?item.transform[5]:null;if(lastY!==null&&Math.abs(y-lastY)>2){text+=line.trim()+'\n';line=''}line+=item.str+' ';lastY=y}if(line.trim())text+=line.trim()+'\n';text+='\n'}return text.replace(/\n{3,}/g,'\n\n').trim()}
+async function loadFileInto(file,targetId,statusId){const statusEl=$(statusId);const ext=(file.name.split('.').pop()||'').toLowerCase();try{if(ext==='pdf'){statusEl.textContent='⏳ Extrayendo PDF…';const text=await extractTextFromPdf(file);if(!text||text.length<30){statusEl.textContent='⚠️ PDF sin texto';statusEl.style.color='var(--warn)';toast('PDF sin texto','Si es escaneado necesita OCR. Intenta copiar/pegar manualmente.','warning',6000)}else{$(targetId).value=text;$(targetId).dispatchEvent(new Event('input'));statusEl.textContent='✓ '+text.split(/\s+/).length+' palabras';statusEl.style.color='var(--accent)';toast('PDF cargado',text.split(/\s+/).length+' palabras extraídas.','success')}}else{statusEl.textContent='⏳ Leyendo…';const reader=new FileReader();await new Promise((resolve,reject)=>{reader.onload=e=>{$(targetId).value=e.target.result;resolve()};reader.onerror=reject;reader.readAsText(file,'UTF-8')});$(targetId).dispatchEvent(new Event('input'));statusEl.textContent='✓ Cargado';statusEl.style.color='var(--accent)';toast('Archivo cargado',file.name,'success')}}catch(e){statusEl.textContent='⚠️ Error';statusEl.style.color='var(--bad)';toast('Error al leer archivo',e.message,'error')}finally{setTimeout(()=>{statusEl.textContent='';statusEl.style.color=''},6000)}}
+async function loadFile(input,targetId,statusId){const file=input.files[0];if(!file)return;await loadFileInto(file,targetId,statusId);input.value=''}
+$('cvFile').addEventListener('change',e=>loadFile(e.target,'cvText','cvFileStatus'));
+$('jobFile').addEventListener('change',e=>loadFile(e.target,'jobText','jobFileStatus'));
+$('clearCvBtn').addEventListener('click',()=>{$('cvText').value='';$('cvText').dispatchEvent(new Event('input'))});
+$('clearJobBtn').addEventListener('click',()=>{$('jobText').value='';$('jobText').dispatchEvent(new Event('input'))});
+$('resetBtn').addEventListener('click',()=>location.reload());
+
+// SAMPLES
+$('sampleCvBtn').addEventListener('click',()=>{$('cvText').value=`ANA PÉREZ\nSantiago, Chile\nana.perez@email.com | +56 9 1234 5678 | linkedin.com/in/anaperez\n\nPERFIL PROFESIONAL\nAnalista de datos con 3 años de experiencia en Excel, SQL y Power BI. Especializada en análisis de KPIs comerciales, automatización de reportes y visualización de datos para áreas de ventas y operaciones.\n\nEXPERIENCIA\nAnalista de Datos | Empresa XYZ | 2022 - Actualidad\n- Desarrollé dashboards en Power BI que redujeron en 30% el tiempo de reporte mensual para 5 áreas.\n- Analicé bases de datos SQL con +500,000 registros para seguimiento de ventas y productividad.\n- Implementé controles de calidad que disminuyeron errores de datos en 18%.\n- Automaticé 12 reportes semanales en Excel con macros VBA, ahorrando 6 horas/semana al equipo.\n\nAsistente de Operaciones | Empresa ABC | 2020 - 2022\n- Elaboré reportes semanales en Excel para 5 áreas operativas con 200+ usuarios.\n- Coordiné indicadores de desempeño y seguimiento de incidencias críticas.\n\nEDUCACIÓN\nIngeniería Comercial | Universidad de Chile | 2020\n\nHABILIDADES\nExcel avanzado, SQL, Power BI, Python básico, análisis de datos, comunicación, trabajo en equipo\n\nIDIOMAS\nEspañol nativo, inglés intermedio`;$('cvText').dispatchEvent(new Event('input'))});
+$('sampleJobBtn').addEventListener('click',()=>{$('jobText').value=`Analista de Datos BI — Empresa Tecnológica\n\nBuscamos un/a Analista de Datos con sólida experiencia en herramientas de visualización y análisis. Serás responsable de crear dashboards estratégicos, analizar KPIs comerciales y operativos, y presentar hallazgos a equipos de negocio y directivos.\n\nResponsabilidades:\n- Diseñar y mantener dashboards en Power BI y Tableau para áreas de ventas, marketing y operaciones\n- Escribir consultas SQL complejas para extracción y transformación de datos\n- Automatizar reportes y flujos de datos con Python o Power Automate\n- Colaborar con equipos de negocio para definir métricas e indicadores clave\n\nRequisitos:\n- 2+ años de experiencia en análisis de datos\n- Dominio avanzado de Excel, SQL y Power BI\n- Deseable Python (pandas, numpy) o R\n- Capacidad de comunicación y storytelling con datos`;$('jobText').dispatchEvent(new Event('input'))});
+
+// ─── PUBLIC API KEY + USE LIMIT ───────────────────────────────────────────────
+const PUBLIC_API_KEY = 'REEMPLAZA_AQUI_CON_TU_API_KEY'; // sk-ant-api03-...
+const MAX_FREE_USES = 5;
+const LS_USES = 'ats_uses_count';
+const LS_USER = 'ats_user_reg';
+const FORMSPREE_URL = 'https://formspree.io/f/REEMPLAZA_CON_TU_FORM_ID';
+
+function getUseCount(){return parseInt(localStorage.getItem(LS_USES)||'0',10)}
+function incUseCount(){localStorage.setItem(LS_USES,getUseCount()+1)}
+function isRegistered(){try{return JSON.parse(localStorage.getItem(LS_USER)||'{}').registered===true}catch{return false}}
+
+async function sendToFormspree(payload){
+  try{
+    await fetch(FORMSPREE_URL,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});
+  }catch(e){/* silencioso */}
+}
+
+// Hook into quickAnalyze to enforce limit and inject public key
+const _origQuickAnalyze = window.quickAnalyze;
+window.quickAnalyze = async function(){
+  const uses = getUseCount();
+  const hasOwnKey = !!sessionStorage.getItem('ats_pro_anthropic_key');
+  if(!hasOwnKey){
+    if(uses >= MAX_FREE_USES){
+      $('limitBanner').classList.remove('hidden');
+      $('limitBanner').scrollIntoView({behavior:'smooth',block:'center'});
+      return;
+    }
+    if(PUBLIC_API_KEY && !PUBLIC_API_KEY.startsWith('REEMPLAZA')){
+      sessionStorage.setItem('ats_pro_anthropic_key', PUBLIC_API_KEY);
+    }
+  }
+  await _origQuickAnalyze.apply(this, arguments);
+  if(!hasOwnKey) incUseCount();
+  $('fabFeedback').style.display='';
+  const remaining = MAX_FREE_USES - getUseCount();
+  if(!hasOwnKey && remaining > 0 && remaining <= 2){
+    toast('Análisis gratuitos','Te quedan '+remaining+' análisis gratuito'+(remaining===1?'':'s')+'.','warning',5000);
+  }
+};
+
+// ─── WELCOME MODAL ────────────────────────────────────────────────────────────
+function initWelcome(){
+  if(isRegistered()){
+    $('welcomeBackdrop').classList.add('hidden');
+    if(getUseCount()>0) $('fabFeedback').style.display='';
+    return;
+  }
+  $('welcomeBackdrop').classList.remove('hidden');
+}
+
+$('welcomeSubmitBtn').addEventListener('click', async ()=>{
+  const nombre = ($('wNombre').value||'').trim();
+  const apellido = ($('wApellido').value||'').trim();
+  if(!nombre || !apellido){
+    $('wNombre').style.borderColor='var(--bad)';
+    $('wApellido').style.borderColor='var(--bad)';
+    setTimeout(()=>{$('wNombre').style.borderColor='';$('wApellido').style.borderColor=''},2000);
+    return;
+  }
+  const comment = ($('wComment').value||'').trim();
+  const userData = {registered:true, nombre, apellido, ts: new Date().toISOString()};
+  localStorage.setItem(LS_USER, JSON.stringify(userData));
+  $('welcomeBackdrop').classList.add('hidden');
+  await sendToFormspree({tipo:'registro', nombre, apellido, comentario: comment, fecha: userData.ts});
+  toast('¡Bienvenido/a '+nombre+'!','Ya puedes usar el evaluador.','success');
+});
+
+// ─── FEEDBACK FAB ─────────────────────────────────────────────────────────────
+$('fabFeedback').addEventListener('click',()=>{
+  $('fbComment').value='';
+  $('feedbackBackdrop').classList.remove('hidden');
+});
+
+$('fbSubmitBtn').addEventListener('click', async ()=>{
+  const comment = ($('fbComment').value||'').trim();
+  if(!comment) return;
+  $('fbSubmitBtn').textContent='Enviando…';
+  $('fbSubmitBtn').disabled=true;
+  let user={};try{user=JSON.parse(localStorage.getItem(LS_USER)||'{}')}catch{}
+  await sendToFormspree({tipo:'feedback', nombre:user.nombre||'', apellido:user.apellido||'', comentario:comment, fecha:new Date().toISOString()});
+  $('feedbackBackdrop').classList.add('hidden');
+  $('fbSubmitBtn').textContent='Enviar →';
+  $('fbSubmitBtn').disabled=false;
+  toast('¡Gracias!','Tu sugerencia fue enviada.','success');
+});
+
+// init
+initWelcome();
+</script>
+</body>
+</html>
