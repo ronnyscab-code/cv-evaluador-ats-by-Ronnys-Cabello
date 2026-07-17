@@ -239,6 +239,30 @@
     .fab-feedback{position:fixed;bottom:24px;left:24px;background:var(--surface2);border:1px solid var(--border2);border-radius:999px;padding:10px 16px;font-size:12px;font-family:'DM Mono',monospace;color:var(--muted2);cursor:pointer;z-index:150;transition:all .15s;display:flex;align-items:center;gap:6px}
     .fab-feedback:hover{border-color:var(--accent);color:var(--accent)}
 
+    /* UPGRADE BANNER */
+    .upgrade-banner{background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.06));border:1px solid rgba(99,102,241,.25);border-radius:16px;padding:20px 24px;margin:0}
+    .upgrade-header{display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+    .upgrade-icon{font-size:28px;flex-shrink:0}
+    .upgrade-title{font-weight:700;font-size:15px;color:var(--text)}
+    .upgrade-sub{font-size:12px;color:var(--muted2);margin-top:2px}
+    .upgrade-compare{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    @media(max-width:600px){.upgrade-compare{grid-template-columns:1fr}.upgrade-header{flex-direction:column;align-items:flex-start}}
+    .upgrade-col{background:var(--card);border-radius:12px;padding:16px;border:1px solid var(--border)}
+    .upgrade-col.premium{border-color:rgba(99,102,241,.4);background:rgba(99,102,241,.05)}
+    .upgrade-col-title{font-weight:700;font-size:13px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+    .badge-free{background:rgba(100,116,139,.15);color:var(--muted2);font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600}
+    .badge-premium{background:rgba(99,102,241,.2);color:#818cf8;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600}
+    .upgrade-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+    .upgrade-list li{font-size:12.5px;color:var(--muted2)}
+    .upgrade-list li.ok{color:var(--text)}
+    .upgrade-list li.no{opacity:.55}
+    .upgrade-footer{font-size:12px;color:var(--muted2);text-align:center;padding-top:12px;border-top:1px solid var(--border)}
+    /* FREE LOCKED */
+    .free-locked-msg{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 24px;gap:12px}
+    .free-lock-icon{font-size:36px}
+    .free-lock-title{font-weight:700;font-size:16px;color:var(--text)}
+    .free-lock-desc{font-size:13px;color:var(--muted2);max-width:420px;line-height:1.6}
+
     /* TOASTS */
     .toast-container{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:200;pointer-events:none}
     .toast{display:flex;align-items:flex-start;gap:10px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:12px 16px;font-size:13px;line-height:1.4;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:toast-in .25s ease-out forwards;pointer-events:all;cursor:pointer}
@@ -505,15 +529,47 @@
   </div>
 </div>
 
-<!-- LIMIT BANNER -->
-<div class="limit-banner hidden" id="limitBanner">
-  <div class="limit-box">
-    <div class="limit-icon">🚫</div>
-    <div>
-      <div class="limit-title">Límite de uso alcanzado</div>
-      <div class="limit-msg">Has utilizado los 5 análisis gratuitos disponibles. Puedes usar tu propia API key de Anthropic para continuar sin límite.</div>
-      <button class="btn-primary" style="margin-top:14px;font-size:13px" onclick="document.getElementById('limitBanner').classList.add('hidden');document.getElementById('keyModal').classList.remove('hidden')">Usar mi API key</button>
+<!-- FREE UPGRADE BANNER -->
+<div id="freeUpgradeBanner" style="display:none;margin:24px 0">
+  <div class="upgrade-banner">
+    <div class="upgrade-header">
+      <span class="upgrade-icon">⚡</span>
+      <div>
+        <div class="upgrade-title">Desbloquea el análisis completo con IA</div>
+        <div class="upgrade-sub">Gratis con tu API key de Anthropic — solo pagas lo que consumes (~$0.01 por análisis)</div>
+      </div>
+      <button class="btn-primary" style="flex-shrink:0;font-size:13px;padding:10px 18px" onclick="openKeyModal()">Agregar API key →</button>
     </div>
+    <div class="upgrade-compare">
+      <div class="upgrade-col free">
+        <div class="upgrade-col-title">Modo gratuito <span class="badge-free">Activo</span></div>
+        <ul class="upgrade-list">
+          <li class="ok">✅ Puntuación ATS (0–100)</li>
+          <li class="ok">✅ Análisis de keywords</li>
+          <li class="ok">✅ Detección de secciones</li>
+          <li class="ok">✅ Checklist de formato</li>
+          <li class="ok">✅ Prioridades de mejora</li>
+          <li class="no">🔒 Informe profundo de IA</li>
+          <li class="no">🔒 Vista del reclutador</li>
+          <li class="no">🔒 Reescritura de bullets</li>
+          <li class="no">🔒 Carta de presentación</li>
+        </ul>
+      </div>
+      <div class="upgrade-col premium">
+        <div class="upgrade-col-title">Modo con API key <span class="badge-premium">Completo</span></div>
+        <ul class="upgrade-list">
+          <li class="ok">✅ Todo lo anterior</li>
+          <li class="ok">✅ Informe profundo de IA</li>
+          <li class="ok">✅ Vista del reclutador + score</li>
+          <li class="ok">✅ Preguntas de entrevista</li>
+          <li class="ok">✅ Reescritura de bullets</li>
+          <li class="ok">✅ Carta de presentación</li>
+          <li class="ok">✅ Sin límite de análisis</li>
+          <li class="ok">✅ ~$0.01 por análisis</li>
+        </ul>
+      </div>
+    </div>
+    <div class="upgrade-footer">Obtén tu API key gratis en <strong>console.anthropic.com</strong> → API Keys. Los primeros $5 de crédito incluyen ~500 análisis.</div>
   </div>
 </div>
 
@@ -670,7 +726,7 @@ function quickAnalyze(cv,job){const cvNorm=normalize(cv);const foundSections=sec
 
 // MAIN ANALYZE
 let lastQuick=null;
-$('analyzeBtn').addEventListener('click',async()=>{const cv=$('cvText').value.trim();const job=$('jobText').value.trim();if(!cv||!job){toast('Faltan datos','Debes ingresar el CV y la descripción del puesto.','warning');return}if(!getApiKey()){toast('Sin API key','Configura tu API key de Anthropic primero.','error');openKeyModal();return}$('analyzeBtn').disabled=true;$('statusMsg').textContent='Analizando…';$('globalProgress').classList.add('show');setProgressStep(0);function showEl(id,display='grid'){const el=$(id);el.style.display=display;requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('visible')))}showEl('scoresRow');showEl('metricsGrid');showEl('recruiterCard','block');showEl('aiReportCard','block');setProgressStep(0);lastQuick=quickAnalyze(cv,job);toast('ATS calculado','Puntaje: '+lastQuick.score+'/100','info',3000);setProgressStep(1);$('recruiterScore').textContent='…';$('recruiterBar').style.width='0%';$('recruiterVerdict').textContent='Evaluando…';$('recruiterReason').textContent='Claude está evaluando desde la perspectiva de un reclutador humano…';$('jobSummaryText').className='skeleton';$('jobSummaryText').style.height='60px';$('jobSummaryText').textContent='';$('lookingForChips').innerHTML='';$('focusGrid').innerHTML='<div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div>';$('questionsList').innerHTML='<div class="skeleton" style="height:90px;margin-bottom:10px"></div><div class="skeleton" style="height:90px;margin-bottom:10px"></div><div class="skeleton" style="height:90px"></div>';const aiEl=$('aiContent');aiEl.className='ai-content loading';aiEl.innerHTML='<div class="spinner"></div><div>Claude está revisando tu CV en profundidad…</div>';const deepTask=(async()=>{try{setProgressStep(2);aiEl.className='ai-content';aiEl.innerHTML='';const streamer=streamToElement(aiEl);await callClaudeStream([{role:'user',content:buildDeepPrompt(cv,job,lastQuick)}],streamer.onChunk,2200);streamer.done()}catch(e){aiEl.className='ai-content';aiEl.innerHTML='<p style="color:var(--bad)">⚠️ '+esc(e.message)+'</p>';toast('Error en informe',e.message,'error',6000)}})();const recruiterTask=(async()=>{try{const data=await callClaudeJson([{role:'user',content:buildRecruiterJsonPrompt(cv,job,lastQuick)}],6000);renderRecruiterView(data)}catch(e){$('recruiterScore').textContent='—';$('recruiterVerdict').textContent='Error';$('recruiterVerdict').style.color='var(--bad)';$('recruiterReason').textContent='Error: '+e.message;$('jobSummaryText').classList.remove('skeleton');$('jobSummaryText').removeAttribute('style');$('jobSummaryText').textContent='No disponible.';$('focusGrid').innerHTML='<div style="color:var(--muted2);font-size:13px">Error al cargar focos.</div>';$('questionsList').innerHTML='<div style="color:var(--muted2);font-size:13px">Error al cargar preguntas.</div>';toast('Error en vista reclutador',e.message,'error',6000)}})();await Promise.all([deepTask,recruiterTask]);setProgressStep(3);$('statusMsg').textContent='✓ Análisis completo';$('analyzeBtn').disabled=false;toast('Análisis completo','Revisa el informe y los focos de preparación.','success');setTimeout(()=>{$('globalProgress').classList.remove('show');$('statusMsg').textContent=''},3000)});
+$('analyzeBtn').addEventListener('click',async()=>{const cv=$('cvText').value.trim();const job=$('jobText').value.trim();if(!cv||!job){toast('Faltan datos','Debes ingresar el CV y la descripción del puesto.','warning');return}const hasPremium=!!getApiKey();$('analyzeBtn').disabled=true;$('statusMsg').textContent='Analizando…';$('globalProgress').classList.add('show');setProgressStep(0);function showEl(id,display='grid'){const el=$(id);el.style.display=display;requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('visible')))}showEl('scoresRow');showEl('metricsGrid');setProgressStep(0);lastQuick=quickAnalyze(cv,job);toast('ATS calculado','Puntaje: '+lastQuick.score+'/100','info',3000);setProgressStep(1);if(!hasPremium){$('recruiterCard').style.display='none';showEl('freeUpgradeBanner','block');const aiEl=$('aiContent');showEl('aiReportCard','block');aiEl.className='ai-content';aiEl.innerHTML='<div class="free-locked-msg"><div class="free-lock-icon">🔒</div><div class="free-lock-title">Informe profundo disponible con API key</div><div class="free-lock-desc">El análisis local ya está listo arriba. Con tu API key de Anthropic obtienes un informe detallado generado por IA con recomendaciones específicas, reescritura de bullets y carta de presentación.</div><button class="btn-primary" style="margin-top:16px" onclick="document.getElementById('freeUpgradeBanner').style.display='none';openKeyModal()">Agregar API key gratuita →</button></div>';setProgressStep(3);$('statusMsg').textContent='✓ Análisis básico listo';$('analyzeBtn').disabled=false;toast('Análisis básico listo','Agrega una API key para el informe completo de IA.','info',5000);setTimeout(()=>{$('globalProgress').classList.remove('show');$('statusMsg').textContent=''},3000);return}showEl('recruiterCard','block');$('freeUpgradeBanner').style.display='none';showEl('aiReportCard','block');setProgressStep(1);$('recruiterScore').textContent='…';$('recruiterBar').style.width='0%';$('recruiterVerdict').textContent='Evaluando…';$('recruiterReason').textContent='Claude está evaluando desde la perspectiva de un reclutador humano…';$('jobSummaryText').className='skeleton';$('jobSummaryText').style.height='60px';$('jobSummaryText').textContent='';$('lookingForChips').innerHTML='';$('focusGrid').innerHTML='<div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div>';$('questionsList').innerHTML='<div class="skeleton" style="height:90px;margin-bottom:10px"></div><div class="skeleton" style="height:90px;margin-bottom:10px"></div><div class="skeleton" style="height:90px"></div>';const aiEl=$('aiContent');aiEl.className='ai-content loading';aiEl.innerHTML='<div class="spinner"></div><div>Claude está revisando tu CV en profundidad…</div>';const deepTask=(async()=>{try{setProgressStep(2);aiEl.className='ai-content';aiEl.innerHTML='';const streamer=streamToElement(aiEl);await callClaudeStream([{role:'user',content:buildDeepPrompt(cv,job,lastQuick)}],streamer.onChunk,2200);streamer.done()}catch(e){aiEl.className='ai-content';aiEl.innerHTML='<p style="color:var(--bad)">⚠️ '+esc(e.message)+'</p>';toast('Error en informe',e.message,'error',6000)}})();const recruiterTask=(async()=>{try{const data=await callClaudeJson([{role:'user',content:buildRecruiterJsonPrompt(cv,job,lastQuick)}],6000);renderRecruiterView(data)}catch(e){$('recruiterScore').textContent='—';$('recruiterVerdict').textContent='Error';$('recruiterVerdict').style.color='var(--bad)';$('recruiterReason').textContent='Error: '+e.message;$('jobSummaryText').classList.remove('skeleton');$('jobSummaryText').removeAttribute('style');$('jobSummaryText').textContent='No disponible.';$('focusGrid').innerHTML='<div style="color:var(--muted2);font-size:13px">Error al cargar focos.</div>';$('questionsList').innerHTML='<div style="color:var(--muted2);font-size:13px">Error al cargar preguntas.</div>';toast('Error en vista reclutador',e.message,'error',6000)}})();await Promise.all([deepTask,recruiterTask]);setProgressStep(3);$('statusMsg').textContent='✓ Análisis completo';$('analyzeBtn').disabled=false;toast('Análisis completo','Revisa el informe y los focos de preparación.','success');setTimeout(()=>{$('globalProgress').classList.remove('show');$('statusMsg').textContent=''},3000)});
 
 // REWRITE
 $('rewriteBtn').addEventListener('click',async()=>{const text=$('rewriteInput').value.trim();if(!text){toast('Texto vacío','Pega un bullet o párrafo a reescribir.','warning');return}if(!$('jobText').value.trim()){toast('Falta vacante','Primero pega la descripción del puesto.','warning');return}if(!getApiKey()){toast('Sin API key','Configura tu API key primero.','error');openKeyModal();return}$('rewriteBtn').disabled=true;$('rewriteBtn').textContent='✨ Reescribiendo…';$('rewriteOutput').style.display='block';const resultEl=$('rewriteResult');resultEl.textContent='';resultEl.classList.add('streaming-cursor');const prompt='Eres un experto en CVs de alto impacto. Reescribe el siguiente bullet/párrafo de CV para que sea más poderoso, específico y orientado a resultados. Usa verbos de acción fuertes, cuantifica cuando sea posible, y alinéalo con la vacante.\n\nVacante (contexto): '+$('jobText').value.trim().slice(0,600)+'\n\nTexto original: "'+text+'"\n\nResponde SOLO con la versión mejorada, sin explicaciones. Máximo 3 bullets.';try{let raw='';await callClaudeStream([{role:'user',content:prompt}],chunk=>{raw+=chunk;resultEl.textContent=raw},800);resultEl.classList.remove('streaming-cursor');toast('Bullet reescrito','Revisa la versión mejorada abajo.','success')}catch(e){resultEl.classList.remove('streaming-cursor');resultEl.textContent='Error: '+e.message;toast('Error',e.message,'error',5000)}$('rewriteBtn').disabled=false;$('rewriteBtn').textContent='✨ Reescribir con IA'});
@@ -700,15 +756,10 @@ $('resetBtn').addEventListener('click',()=>location.reload());
 $('sampleCvBtn').addEventListener('click',()=>{$('cvText').value=`ANA PÉREZ\nSantiago, Chile\nana.perez@email.com | +56 9 1234 5678 | linkedin.com/in/anaperez\n\nPERFIL PROFESIONAL\nAnalista de datos con 3 años de experiencia en Excel, SQL y Power BI. Especializada en análisis de KPIs comerciales, automatización de reportes y visualización de datos para áreas de ventas y operaciones.\n\nEXPERIENCIA\nAnalista de Datos | Empresa XYZ | 2022 - Actualidad\n- Desarrollé dashboards en Power BI que redujeron en 30% el tiempo de reporte mensual para 5 áreas.\n- Analicé bases de datos SQL con +500,000 registros para seguimiento de ventas y productividad.\n- Implementé controles de calidad que disminuyeron errores de datos en 18%.\n- Automaticé 12 reportes semanales en Excel con macros VBA, ahorrando 6 horas/semana al equipo.\n\nAsistente de Operaciones | Empresa ABC | 2020 - 2022\n- Elaboré reportes semanales en Excel para 5 áreas operativas con 200+ usuarios.\n- Coordiné indicadores de desempeño y seguimiento de incidencias críticas.\n\nEDUCACIÓN\nIngeniería Comercial | Universidad de Chile | 2020\n\nHABILIDADES\nExcel avanzado, SQL, Power BI, Python básico, análisis de datos, comunicación, trabajo en equipo\n\nIDIOMAS\nEspañol nativo, inglés intermedio`;$('cvText').dispatchEvent(new Event('input'))});
 $('sampleJobBtn').addEventListener('click',()=>{$('jobText').value=`Analista de Datos BI — Empresa Tecnológica\n\nBuscamos un/a Analista de Datos con sólida experiencia en herramientas de visualización y análisis. Serás responsable de crear dashboards estratégicos, analizar KPIs comerciales y operativos, y presentar hallazgos a equipos de negocio y directivos.\n\nResponsabilidades:\n- Diseñar y mantener dashboards en Power BI y Tableau para áreas de ventas, marketing y operaciones\n- Escribir consultas SQL complejas para extracción y transformación de datos\n- Automatizar reportes y flujos de datos con Python o Power Automate\n- Colaborar con equipos de negocio para definir métricas e indicadores clave\n\nRequisitos:\n- 2+ años de experiencia en análisis de datos\n- Dominio avanzado de Excel, SQL y Power BI\n- Deseable Python (pandas, numpy) o R\n- Capacidad de comunicación y storytelling con datos`;$('jobText').dispatchEvent(new Event('input'))});
 
-// ─── PUBLIC API KEY + USE LIMIT ───────────────────────────────────────────────
-const PUBLIC_API_KEY = 'REEMPLAZA_AQUI_CON_TU_API_KEY'; // sk-ant-api03-...
-const MAX_FREE_USES = 5;
-const LS_USES = 'ats_uses_count';
+// ─── REGISTRO + FORMSPREE ─────────────────────────────────────────────────────
 const LS_USER = 'ats_user_reg';
 const FORMSPREE_URL = 'https://formspree.io/f/REEMPLAZA_CON_TU_FORM_ID';
 
-function getUseCount(){return parseInt(localStorage.getItem(LS_USES)||'0',10)}
-function incUseCount(){localStorage.setItem(LS_USES,getUseCount()+1)}
 function isRegistered(){try{return JSON.parse(localStorage.getItem(LS_USER)||'{}').registered===true}catch{return false}}
 
 async function sendToFormspree(payload){
@@ -717,35 +768,10 @@ async function sendToFormspree(payload){
   }catch(e){/* silencioso */}
 }
 
-// Hook into quickAnalyze to enforce limit and inject public key
-const _origQuickAnalyze = window.quickAnalyze;
-window.quickAnalyze = async function(){
-  const uses = getUseCount();
-  const hasOwnKey = !!sessionStorage.getItem('ats_pro_anthropic_key');
-  if(!hasOwnKey){
-    if(uses >= MAX_FREE_USES){
-      $('limitBanner').classList.remove('hidden');
-      $('limitBanner').scrollIntoView({behavior:'smooth',block:'center'});
-      return;
-    }
-    if(PUBLIC_API_KEY && !PUBLIC_API_KEY.startsWith('REEMPLAZA')){
-      sessionStorage.setItem('ats_pro_anthropic_key', PUBLIC_API_KEY);
-    }
-  }
-  await _origQuickAnalyze.apply(this, arguments);
-  if(!hasOwnKey) incUseCount();
-  $('fabFeedback').style.display='';
-  const remaining = MAX_FREE_USES - getUseCount();
-  if(!hasOwnKey && remaining > 0 && remaining <= 2){
-    toast('Análisis gratuitos','Te quedan '+remaining+' análisis gratuito'+(remaining===1?'':'s')+'.','warning',5000);
-  }
-};
-
 // ─── WELCOME MODAL ────────────────────────────────────────────────────────────
 function initWelcome(){
   if(isRegistered()){
     $('welcomeBackdrop').classList.add('hidden');
-    if(getUseCount()>0) $('fabFeedback').style.display='';
     return;
   }
   $('welcomeBackdrop').classList.remove('hidden');
