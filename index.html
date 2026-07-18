@@ -524,7 +524,9 @@
       <input class="welcome-field" id="wApellido" type="text" placeholder="Apellido" maxlength="60" autocomplete="family-name"/>
     </div>
     <textarea class="welcome-field" id="wComment" placeholder="¿Tienes alguna sugerencia para mejorar la app? (opcional)" rows="3" maxlength="500" style="resize:vertical"></textarea>
+    <div id="welcomeError" style="display:none;color:var(--bad);font-size:12.5px;text-align:center;margin-top:4px">⚠️ Por favor ingresa tu nombre y apellido para continuar.</div>
     <button class="welcome-btn" id="welcomeSubmitBtn">Comenzar →</button>
+    <button class="btn-ghost" style="width:100%;margin-top:8px;font-size:12px;opacity:.6" id="welcomeSkipBtn">Saltar registro</button>
     <div class="welcome-privacy">🔒 Solo registramos tu nombre para uso interno. No compartimos tus datos.</div>
   </div>
 </div>
@@ -769,6 +771,7 @@ async function sendToFormspree(payload){
 }
 
 // ─── WELCOME MODAL ────────────────────────────────────────────────────────────
+function closeWelcome(){$('welcomeBackdrop').classList.add('hidden')}
 function initWelcome(){
   if(isRegistered()){
     $('welcomeBackdrop').classList.add('hidden');
@@ -783,15 +786,22 @@ $('welcomeSubmitBtn').addEventListener('click', async ()=>{
   if(!nombre || !apellido){
     $('wNombre').style.borderColor='var(--bad)';
     $('wApellido').style.borderColor='var(--bad)';
-    setTimeout(()=>{$('wNombre').style.borderColor='';$('wApellido').style.borderColor=''},2000);
+    $('welcomeError').style.display='block';
+    setTimeout(()=>{$('wNombre').style.borderColor='';$('wApellido').style.borderColor='';$('welcomeError').style.display='none'},3000);
     return;
   }
   const comment = ($('wComment').value||'').trim();
   const userData = {registered:true, nombre, apellido, ts: new Date().toISOString()};
   localStorage.setItem(LS_USER, JSON.stringify(userData));
-  $('welcomeBackdrop').classList.add('hidden');
+  closeWelcome();
   await sendToFormspree({tipo:'registro', nombre, apellido, comentario: comment, fecha: userData.ts});
   toast('¡Bienvenido/a '+nombre+'!','Ya puedes usar el evaluador.','success');
+});
+
+$('welcomeSkipBtn').addEventListener('click',()=>{
+  const userData={registered:true,nombre:'Anónimo',apellido:'',ts:new Date().toISOString()};
+  localStorage.setItem(LS_USER,JSON.stringify(userData));
+  closeWelcome();
 });
 
 // ─── FEEDBACK FAB ─────────────────────────────────────────────────────────────
