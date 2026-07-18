@@ -323,10 +323,10 @@
   <div class="api-banner" id="apiBanner" onclick="openKeyModal()">
     <span class="api-banner-icon">🔑</span>
     <div class="api-banner-text">
-      <strong>Configura tu API key de Anthropic para comenzar</strong>
-      <span>Necesitas una key de console.anthropic.com → API Keys. Se guarda solo en tu navegador.</span>
+      <strong>Sin API key — modo gratuito activo</strong>
+      <span>Puedes analizar tu CV ahora. <b>Sin key:</b> puntuación ATS, keywords y checklist de formato. <b>Con key:</b> informe profundo de IA, vista del reclutador, reescritura de bullets y carta de presentación. Obtén tu key gratis en console.anthropic.com</span>
     </div>
-    <span style="margin-left:auto;color:var(--muted2);font-size:12px">Configurar →</span>
+    <span style="margin-left:auto;color:var(--muted2);font-size:12px;white-space:nowrap">Agregar key →</span>
   </div>
 
   <div class="input-grid">
@@ -501,10 +501,31 @@
 
 <div class="modal-backdrop" id="keyModal" role="dialog" aria-labelledby="keyModalTitle">
   <div class="modal">
-    <h3 id="keyModalTitle">🔑 Configurar API key de Anthropic</h3>
-    <p>Para que Claude pueda analizar tu CV necesitas una API key de Anthropic. Obtenla en <strong>console.anthropic.com</strong> → API Keys.</p>
+    <h3 id="keyModalTitle">🔑 Agregar API key de Anthropic</h3>
+    <div style="background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:14px 16px;margin-bottom:14px;font-size:12.5px;line-height:1.7">
+      <div style="font-weight:700;margin-bottom:8px;font-size:13px">¿Qué desbloqueas con tu API key?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <div style="font-weight:600;color:var(--muted2);margin-bottom:4px">Sin key (gratis)</div>
+          <div>✅ Puntuación ATS 0–100</div>
+          <div>✅ Keywords presentes y faltantes</div>
+          <div>✅ Detección de secciones</div>
+          <div>✅ Checklist de formato</div>
+          <div>✅ Prioridades de mejora</div>
+        </div>
+        <div>
+          <div style="font-weight:600;color:#818cf8;margin-bottom:4px">Con API key ⚡</div>
+          <div>⚡ Todo lo anterior</div>
+          <div>⚡ Informe profundo de IA</div>
+          <div>⚡ Vista del reclutador + score</div>
+          <div>⚡ Reescritura de bullets</div>
+          <div>⚡ Carta de presentación</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);color:var(--muted2)">💰 Costo: ~$0.01 por análisis completo. Obtén tu key gratis en <strong style="color:var(--text)">console.anthropic.com → API Keys</strong></div>
+    </div>
     <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false"/>
-    <div class="modal-warn">⚠️ Tu key se guarda <strong>solo en este navegador</strong> (sessionStorage). No se envía a ningún servidor propio. No uses este archivo en páginas públicas compartidas.</div>
+    <div class="modal-warn">⚠️ Tu key se guarda <strong>solo en este navegador</strong> (sessionStorage). No se envía a ningún servidor externo.</div>
     <div class="modal-actions">
       <button class="btn-ghost" id="keyCancelBtn">Cancelar</button>
       <button class="btn-ghost" id="keyClearBtn" style="color:var(--bad);border-color:rgba(240,80,96,.3)">Borrar</button>
