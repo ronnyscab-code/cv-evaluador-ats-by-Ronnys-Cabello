@@ -728,7 +728,70 @@ function quickAnalyze(cv,job){const cvNorm=normalize(cv);const foundSections=sec
 
 // MAIN ANALYZE
 let lastQuick=null;
-$('analyzeBtn').addEventListener('click',async()=>{const cv=$('cvText').value.trim();const job=$('jobText').value.trim();if(!cv||!job){toast('Faltan datos','Debes ingresar el CV y la descripción del puesto.','warning');return}const hasPremium=!!getApiKey();$('analyzeBtn').disabled=true;$('statusMsg').textContent='Analizando…';$('globalProgress').classList.add('show');setProgressStep(0);function showEl(id,display='grid'){const el=$(id);el.style.display=display;requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('visible')))}showEl('scoresRow');showEl('metricsGrid');setProgressStep(0);lastQuick=quickAnalyze(cv,job);toast('ATS calculado','Puntaje: '+lastQuick.score+'/100','info',3000);setProgressStep(1);if(!hasPremium){$('recruiterCard').style.display='none';showEl('freeUpgradeBanner','block');const aiEl=$('aiContent');showEl('aiReportCard','block');aiEl.className='ai-content';aiEl.innerHTML='<div class="free-locked-msg"><div class="free-lock-icon">🔒</div><div class="free-lock-title">Informe profundo disponible con API key</div><div class="free-lock-desc">El análisis local ya está listo arriba. Con tu API key de Anthropic obtienes un informe detallado generado por IA con recomendaciones específicas, reescritura de bullets y carta de presentación.</div><button class="btn-primary" style="margin-top:16px" onclick="document.getElementById('freeUpgradeBanner').style.display='none';openKeyModal()">Agregar API key gratuita →</button></div>';setProgressStep(3);$('statusMsg').textContent='✓ Análisis básico listo';$('analyzeBtn').disabled=false;toast('Análisis básico listo','Agrega una API key para el informe completo de IA.','info',5000);setTimeout(()=>{$('globalProgress').classList.remove('show');$('statusMsg').textContent=''},3000);return}showEl('recruiterCard','block');$('freeUpgradeBanner').style.display='none';showEl('aiReportCard','block');setProgressStep(1);$('recruiterScore').textContent='…';$('recruiterBar').style.width='0%';$('recruiterVerdict').textContent='Evaluando…';$('recruiterReason').textContent='Claude está evaluando desde la perspectiva de un reclutador humano…';$('jobSummaryText').className='skeleton';$('jobSummaryText').style.height='60px';$('jobSummaryText').textContent='';$('lookingForChips').innerHTML='';$('focusGrid').innerHTML='<div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div>';$('questionsList').innerHTML='<div class="skeleton" style="height:90px;margin-bottom:10px"></div><div class="skeleton" style="height:90px;margin-bottom:10px"></div><div class="skeleton" style="height:90px"></div>';const aiEl=$('aiContent');aiEl.className='ai-content loading';aiEl.innerHTML='<div class="spinner"></div><div>Claude está revisando tu CV en profundidad…</div>';const deepTask=(async()=>{try{setProgressStep(2);aiEl.className='ai-content';aiEl.innerHTML='';const streamer=streamToElement(aiEl);await callClaudeStream([{role:'user',content:buildDeepPrompt(cv,job,lastQuick)}],streamer.onChunk,2200);streamer.done()}catch(e){aiEl.className='ai-content';aiEl.innerHTML='<p style="color:var(--bad)">⚠️ '+esc(e.message)+'</p>';toast('Error en informe',e.message,'error',6000)}})();const recruiterTask=(async()=>{try{const data=await callClaudeJson([{role:'user',content:buildRecruiterJsonPrompt(cv,job,lastQuick)}],6000);renderRecruiterView(data)}catch(e){$('recruiterScore').textContent='—';$('recruiterVerdict').textContent='Error';$('recruiterVerdict').style.color='var(--bad)';$('recruiterReason').textContent='Error: '+e.message;$('jobSummaryText').classList.remove('skeleton');$('jobSummaryText').removeAttribute('style');$('jobSummaryText').textContent='No disponible.';$('focusGrid').innerHTML='<div style="color:var(--muted2);font-size:13px">Error al cargar focos.</div>';$('questionsList').innerHTML='<div style="color:var(--muted2);font-size:13px">Error al cargar preguntas.</div>';toast('Error en vista reclutador',e.message,'error',6000)}})();await Promise.all([deepTask,recruiterTask]);setProgressStep(3);$('statusMsg').textContent='✓ Análisis completo';$('analyzeBtn').disabled=false;toast('Análisis completo','Revisa el informe y los focos de preparación.','success');setTimeout(()=>{$('globalProgress').classList.remove('show');$('statusMsg').textContent=''},3000)});
+function showFreeLockUpgrade(){openKeyModal()}
+$('analyzeBtn').addEventListener('click',async()=>{
+const cv=$('cvText').value.trim();
+const job=$('jobText').value.trim();
+if(!cv||!job){toast('Faltan datos','Debes ingresar el CV y la descripción del puesto.','warning');return}
+const hasPremium=!!getApiKey();
+$('analyzeBtn').disabled=true;
+$('statusMsg').textContent='Analizando…';
+$('globalProgress').classList.add('show');
+setProgressStep(0);
+function showEl(id,display='grid'){const el=$(id);el.style.display=display;requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('visible')))}
+showEl('scoresRow');
+showEl('metricsGrid');
+setProgressStep(0);
+lastQuick=quickAnalyze(cv,job);
+toast('ATS calculado','Puntaje: '+lastQuick.score+'/100','info',3000);
+setProgressStep(1);
+if(!hasPremium){
+  $('recruiterCard').style.display='none';
+  showEl('freeUpgradeBanner','block');
+  const aiEl=$('aiContent');
+  showEl('aiReportCard','block');
+  aiEl.className='ai-content';
+  const freeLockHtml=[
+    '<div class="free-locked-msg">',
+    '<div class="free-lock-icon">🔒</div>',
+    '<div class="free-lock-title">Informe profundo disponible con API key</div>',
+    '<div class="free-lock-desc">El análisis local ya está listo arriba. Con tu API key de Anthropic obtienes un informe detallado generado por IA con recomendaciones específicas, reescritura de bullets y carta de presentación.</div>',
+    '<button class="btn-primary" style="margin-top:16px" onclick="showFreeLockUpgrade()">Agregar API key gratuita →</button>',
+    '</div>'
+  ].join('');
+  aiEl.innerHTML=freeLockHtml;
+  setProgressStep(3);
+  $('statusMsg').textContent='✓ Análisis básico listo';
+  $('analyzeBtn').disabled=false;
+  toast('Análisis básico listo','Agrega una API key para el informe completo de IA.','info',5000);
+  setTimeout(()=>{$('globalProgress').classList.remove('show');$('statusMsg').textContent=''},3000);
+  return;
+}
+showEl('recruiterCard','block');
+$('freeUpgradeBanner').style.display='none';
+showEl('aiReportCard','block');
+setProgressStep(1);
+$('recruiterScore').textContent='…';
+$('recruiterBar').style.width='0%';
+$('recruiterVerdict').textContent='Evaluando…';
+$('recruiterReason').textContent='Claude está evaluando desde la perspectiva de un reclutador humano…';
+$('jobSummaryText').className='skeleton';
+$('jobSummaryText').style.height='60px';
+$('jobSummaryText').textContent='';
+$('lookingForChips').innerHTML='';
+$('focusGrid').innerHTML='<div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div>';
+$('questionsList').innerHTML='<div class="skeleton" style="height:90px;margin-bottom:10px"></div><div class="skeleton" style="height:90px;margin-bottom:10px"></div><div class="skeleton" style="height:90px"></div>';
+const aiEl=$('aiContent');
+aiEl.className='ai-content loading';
+aiEl.innerHTML='<div class="spinner"></div><div>Claude está revisando tu CV en profundidad…</div>';
+const deepTask=(async()=>{try{setProgressStep(2);aiEl.className='ai-content';aiEl.innerHTML='';const streamer=streamToElement(aiEl);await callClaudeStream([{role:'user',content:buildDeepPrompt(cv,job,lastQuick)}],streamer.onChunk,2200);streamer.done()}catch(e){aiEl.className='ai-content';aiEl.innerHTML='<p style="color:var(--bad)">⚠️ '+esc(e.message)+'</p>';toast('Error en informe',e.message,'error',6000)}})();
+const recruiterTask=(async()=>{try{const data=await callClaudeJson([{role:'user',content:buildRecruiterJsonPrompt(cv,job,lastQuick)}],6000);renderRecruiterView(data)}catch(e){$('recruiterScore').textContent='—';$('recruiterVerdict').textContent='Error';$('recruiterVerdict').style.color='var(--bad)';$('recruiterReason').textContent='Error: '+e.message;$('jobSummaryText').classList.remove('skeleton');$('jobSummaryText').removeAttribute('style');$('jobSummaryText').textContent='No disponible.';$('focusGrid').innerHTML='<div style="color:var(--muted2);font-size:13px">Error al cargar focos.</div>';$('questionsList').innerHTML='<div style="color:var(--muted2);font-size:13px">Error al cargar preguntas.</div>';toast('Error en vista reclutador',e.message,'error',6000)}})();
+await Promise.all([deepTask,recruiterTask]);
+setProgressStep(3);
+$('statusMsg').textContent='✓ Análisis completo';
+$('analyzeBtn').disabled=false;
+toast('Análisis completo','Revisa el informe y los focos de preparación.','success');
+setTimeout(()=>{$('globalProgress').classList.remove('show');$('statusMsg').textContent=''},3000)});
 
 // REWRITE
 $('rewriteBtn').addEventListener('click',async()=>{const text=$('rewriteInput').value.trim();if(!text){toast('Texto vacío','Pega un bullet o párrafo a reescribir.','warning');return}if(!$('jobText').value.trim()){toast('Falta vacante','Primero pega la descripción del puesto.','warning');return}if(!getApiKey()){toast('Sin API key','Configura tu API key primero.','error');openKeyModal();return}$('rewriteBtn').disabled=true;$('rewriteBtn').textContent='✨ Reescribiendo…';$('rewriteOutput').style.display='block';const resultEl=$('rewriteResult');resultEl.textContent='';resultEl.classList.add('streaming-cursor');const prompt='Eres un experto en CVs de alto impacto. Reescribe el siguiente bullet/párrafo de CV para que sea más poderoso, específico y orientado a resultados. Usa verbos de acción fuertes, cuantifica cuando sea posible, y alinéalo con la vacante.\n\nVacante (contexto): '+$('jobText').value.trim().slice(0,600)+'\n\nTexto original: "'+text+'"\n\nResponde SOLO con la versión mejorada, sin explicaciones. Máximo 3 bullets.';try{let raw='';await callClaudeStream([{role:'user',content:prompt}],chunk=>{raw+=chunk;resultEl.textContent=raw},800);resultEl.classList.remove('streaming-cursor');toast('Bullet reescrito','Revisa la versión mejorada abajo.','success')}catch(e){resultEl.classList.remove('streaming-cursor');resultEl.textContent='Error: '+e.message;toast('Error',e.message,'error',5000)}$('rewriteBtn').disabled=false;$('rewriteBtn').textContent='✨ Reescribir con IA'});
