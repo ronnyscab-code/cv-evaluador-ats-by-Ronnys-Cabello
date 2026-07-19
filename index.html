@@ -326,7 +326,34 @@
       <strong>Sin API key — modo gratuito activo</strong>
       <span>Puedes analizar tu CV ahora. <b>Sin key:</b> puntuación ATS, keywords y checklist de formato. <b>Con key:</b> informe profundo de IA, vista del reclutador, reescritura de bullets y carta de presentación. Obtén tu key gratis en console.anthropic.com</span>
     </div>
-    <span style="margin-left:auto;color:var(--muted2);font-size:12px;white-space:nowrap">Agregar key →</span>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <span style="color:var(--muted2);font-size:12px;white-space:nowrap">Agregar key →</span>
+      <button id="howToGetKeyBtn" onclick="event.stopPropagation();document.getElementById('howToKeyModal').classList.add('show')" style="width:20px;height:20px;border-radius:50%;border:1px solid var(--muted2);background:transparent;color:var(--muted2);font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0" title="¿Cómo obtener una API key?">?</button>
+    </div>
+  </div>
+
+  <!-- HOW TO GET KEY MODAL -->
+  <div class="modal-backdrop" id="howToKeyModal" role="dialog">
+    <div class="modal" style="max-width:460px">
+      <h3>🔑 ¿Cómo obtener tu API key?</h3>
+      <div style="font-size:13px;line-height:1.75;color:var(--text)">
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">1</span><span>Ve a <strong>console.anthropic.com</strong> y crea una cuenta gratis con tu email.</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">2</span><span>En el menú lateral ve a <strong>Settings → API Keys</strong> y haz clic en <strong>Create Key</strong>.</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">3</span><span>Copia la key (empieza con <code style="background:var(--card);padding:1px 5px;border-radius:4px">sk-ant-api03-…</code>) — solo se muestra una vez.</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">4</span><span>Ve a <strong>Billing → Add Credit</strong> y carga el mínimo de <strong>$5 USD</strong> (necesario para activar la key).</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">5</span><span>Pega la key en esta app y listo. ¡Ya tienes el análisis completo!</span></div>
+        </div>
+        <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:12px 14px;font-size:12.5px">
+          <div style="font-weight:700;margin-bottom:6px">💰 ¿Cuánto dura el crédito?</div>
+          <div style="color:var(--muted2);line-height:1.7">Con <strong style="color:var(--text)">$5 USD</strong> puedes hacer aproximadamente <strong style="color:var(--accent)">400–500 análisis completos</strong> (informe + vista reclutador). Cada análisis cuesta ~$0.01. El crédito no vence — lo usas a tu ritmo.</div>
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:16px">
+        <button class="btn-ghost" onclick="document.getElementById('howToKeyModal').classList.remove('show')">Cerrar</button>
+        <button class="btn-primary" onclick="document.getElementById('howToKeyModal').classList.remove('show');openKeyModal()">Tengo mi key →</button>
+      </div>
+    </div>
   </div>
 
   <div class="input-grid">
