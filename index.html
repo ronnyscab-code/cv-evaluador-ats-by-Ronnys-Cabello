@@ -239,6 +239,11 @@
     .fab-feedback{position:fixed;bottom:24px;left:24px;background:var(--surface2);border:1px solid var(--border2);border-radius:999px;padding:10px 16px;font-size:12px;font-family:'DM Mono',monospace;color:var(--muted2);cursor:pointer;z-index:150;transition:all .15s;display:flex;align-items:center;gap:6px}
     .fab-feedback:hover{border-color:var(--accent);color:var(--accent)}
 
+    /* PROVIDER BUTTONS */
+    .provider-btn{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:12px;color:var(--muted2);cursor:pointer;transition:all .15s;font-family:inherit}
+    .provider-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(99,102,241,.08)}
+    .provider-btn:hover{border-color:var(--accent);color:var(--accent)}
+
     /* UPGRADE BANNER */
     .upgrade-banner{background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.06));border:1px solid rgba(99,102,241,.25);border-radius:16px;padding:20px 24px;margin:0}
     .upgrade-header{display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap}
@@ -324,31 +329,59 @@
     <span class="api-banner-icon">🔑</span>
     <div class="api-banner-text">
       <strong>Sin API key — modo gratuito activo</strong>
-      <span>Puedes analizar tu CV ahora. <b>Sin key:</b> puntuación ATS, keywords y checklist de formato. <b>Con key:</b> informe profundo de IA, vista del reclutador, reescritura de bullets y carta de presentación. Obtén tu key gratis en console.anthropic.com</span>
+      <span><b>Sin key:</b> puntuación ATS, keywords y checklist. <b>Con key:</b> informe de IA, vista del reclutador, reescritura y carta. Elige tu proveedor:</span>
+      <div id="providerSelector" style="display:flex;gap:6px;margin-top:6px" onclick="event.stopPropagation()">
+        <button class="provider-btn active" id="providerAnthropicBtn" onclick="setProvider('anthropic')">🟣 Anthropic (Claude)</button>
+        <button class="provider-btn" id="providerGoogleBtn" onclick="setProvider('google')">🔵 Google (Gemini) · Gratis</button>
+      </div>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0">
       <span style="color:var(--muted2);font-size:12px;white-space:nowrap">Agregar key →</span>
-      <button id="howToGetKeyBtn" onclick="event.stopPropagation();document.getElementById('howToKeyModal').classList.add('show')" style="width:20px;height:20px;border-radius:50%;border:1px solid var(--muted2);background:transparent;color:var(--muted2);font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0" title="¿Cómo obtener una API key?">?</button>
+      <button onclick="event.stopPropagation();document.getElementById('howToKeyModal').classList.add('show')" style="width:20px;height:20px;border-radius:50%;border:1px solid var(--muted2);background:transparent;color:var(--muted2);font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0" title="¿Cómo obtener una API key?">?</button>
     </div>
   </div>
 
   <!-- HOW TO GET KEY MODAL -->
   <div class="modal-backdrop" id="howToKeyModal" role="dialog">
-    <div class="modal" style="max-width:460px">
+    <div class="modal" style="max-width:500px">
       <h3>🔑 ¿Cómo obtener tu API key?</h3>
-      <div style="font-size:13px;line-height:1.75;color:var(--text)">
-        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
-          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">1</span><span>Ve a <strong>console.anthropic.com</strong> y crea una cuenta gratis con tu email.</span></div>
-          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">2</span><span>En el menú lateral ve a <strong>Settings → API Keys</strong> y haz clic en <strong>Create Key</strong>.</span></div>
-          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">3</span><span>Copia la key (empieza con <code style="background:var(--card);padding:1px 5px;border-radius:4px">sk-ant-api03-…</code>) — solo se muestra una vez.</span></div>
-          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">4</span><span>Ve a <strong>Billing → Add Credit</strong> y carga el mínimo de <strong>$5 USD</strong> (necesario para activar la key).</span></div>
-          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">5</span><span>Pega la key en esta app y listo. ¡Ya tienes el análisis completo!</span></div>
+      <div style="display:flex;gap:6px;margin-bottom:16px">
+        <button class="provider-btn active" id="howTabAnthropicBtn" onclick="showHowTab('anthropic')">🟣 Anthropic</button>
+        <button class="provider-btn" id="howTabGoogleBtn" onclick="showHowTab('google')">🔵 Google · Gratis</button>
+      </div>
+
+      <!-- Anthropic tab -->
+      <div id="howTabAnthropicContent" style="font-size:13px;line-height:1.75;color:var(--text)">
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">1</span><span>Ve a <strong>console.anthropic.com</strong> y crea una cuenta con tu email.</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">2</span><span>Ve a <strong>Settings → API Keys → Create Key</strong>.</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">3</span><span>Copia la key (<code style="background:var(--card);padding:1px 5px;border-radius:4px">sk-ant-api03-…</code>) — solo se muestra una vez.</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">4</span><span>Ve a <strong>Billing → Add Credit</strong> y carga mínimo <strong>$5 USD</strong>.</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">5</span><span>Pega la key en la app. ¡Listo!</span></div>
         </div>
         <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:12px 14px;font-size:12.5px">
-          <div style="font-weight:700;margin-bottom:6px">💰 ¿Cuánto dura el crédito?</div>
-          <div style="color:var(--muted2);line-height:1.7">Con <strong style="color:var(--text)">$5 USD</strong> puedes hacer aproximadamente <strong style="color:var(--accent)">400–500 análisis completos</strong> (informe + vista reclutador). Cada análisis cuesta ~$0.01. El crédito no vence — lo usas a tu ritmo.</div>
+          <div style="font-weight:700;margin-bottom:4px">💰 ¿Cuánto dura el crédito?</div>
+          <div style="color:var(--muted2)">Con <strong style="color:var(--text)">$5 USD</strong> tienes aprox. <strong style="color:var(--accent)">400–500 análisis completos</strong> (~$0.01 c/u). El crédito no vence.</div>
         </div>
       </div>
+
+      <!-- Google tab -->
+      <div id="howTabGoogleContent" style="display:none;font-size:13px;line-height:1.75;color:var(--text)">
+        <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--accent)">
+          ✅ <strong>Google Gemini tiene una capa gratuita</strong> — sin necesidad de tarjeta de crédito para empezar.
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:#3b82f6;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">1</span><span>Ve a <strong>aistudio.google.com</strong> e inicia sesión con tu cuenta Google.</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:#3b82f6;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">2</span><span>Haz clic en <strong>Get API Key → Create API Key</strong> (arriba a la izquierda).</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:#3b82f6;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">3</span><span>Selecciona un proyecto de Google Cloud (o crea uno nuevo gratis).</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start"><span style="background:#3b82f6;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">4</span><span>Copia la key generada (<code style="background:var(--card);padding:1px 5px;border-radius:4px">AIzaSy…</code>) y pégala en la app.</span></div>
+        </div>
+        <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:12px 14px;font-size:12.5px">
+          <div style="font-weight:700;margin-bottom:4px">🎁 ¿Cuánto puedo usar gratis?</div>
+          <div style="color:var(--muted2)">Con el plan gratuito tienes <strong style="color:var(--text)">1.500 solicitudes/día</strong> con Gemini 1.5 Flash — suficiente para <strong style="color:var(--accent)">cientos de análisis al día</strong> sin pagar nada.</div>
+        </div>
+      </div>
+
       <div class="modal-actions" style="margin-top:16px">
         <button class="btn-ghost" onclick="document.getElementById('howToKeyModal').classList.remove('show')">Cerrar</button>
         <button class="btn-primary" onclick="document.getElementById('howToKeyModal').classList.remove('show');openKeyModal()">Tengo mi key →</button>
@@ -528,30 +561,14 @@
 
 <div class="modal-backdrop" id="keyModal" role="dialog" aria-labelledby="keyModalTitle">
   <div class="modal">
-    <h3 id="keyModalTitle">🔑 Agregar API key de Anthropic</h3>
-    <div style="background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:14px 16px;margin-bottom:14px;font-size:12.5px;line-height:1.7">
-      <div style="font-weight:700;margin-bottom:8px;font-size:13px">¿Qué desbloqueas con tu API key?</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div>
-          <div style="font-weight:600;color:var(--muted2);margin-bottom:4px">Sin key (gratis)</div>
-          <div>✅ Puntuación ATS 0–100</div>
-          <div>✅ Keywords presentes y faltantes</div>
-          <div>✅ Detección de secciones</div>
-          <div>✅ Checklist de formato</div>
-          <div>✅ Prioridades de mejora</div>
-        </div>
-        <div>
-          <div style="font-weight:600;color:#818cf8;margin-bottom:4px">Con API key ⚡</div>
-          <div>⚡ Todo lo anterior</div>
-          <div>⚡ Informe profundo de IA</div>
-          <div>⚡ Vista del reclutador + score</div>
-          <div>⚡ Reescritura de bullets</div>
-          <div>⚡ Carta de presentación</div>
-        </div>
-      </div>
-      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);color:var(--muted2)">💰 Costo: ~$0.01 por análisis completo. Obtén tu key gratis en <strong style="color:var(--text)">console.anthropic.com → API Keys</strong></div>
+    <h3 id="keyModalTitle">🔑 Configurar API key</h3>
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button class="provider-btn active" id="keyTabAnthropicBtn" onclick="switchKeyTab('anthropic')">🟣 Anthropic</button>
+      <button class="provider-btn" id="keyTabGoogleBtn" onclick="switchKeyTab('google')">🔵 Google · Gratis</button>
     </div>
-    <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false"/>
+    <div id="keyTabAnthropicInfo" style="font-size:12px;color:var(--muted2);margin-bottom:10px">Modelo: <strong style="color:var(--text)">Claude Haiku</strong> · ~$0.01/análisis · Requiere $5 USD de crédito · <a onclick="document.getElementById('keyModal').classList.remove('show');document.getElementById('howToKeyModal').classList.add('show');showHowTab('anthropic')" style="color:var(--accent);cursor:pointer">¿Cómo obtener?</a></div>
+    <div id="keyTabGoogleInfo" style="display:none;font-size:12px;color:var(--muted2);margin-bottom:10px">Modelo: <strong style="color:var(--text)">Gemini 1.5 Flash</strong> · <strong style="color:#22c55e">Gratis</strong> · 1.500 solicitudes/día sin costo · <a onclick="document.getElementById('keyModal').classList.remove('show');document.getElementById('howToKeyModal').classList.add('show');showHowTab('google')" style="color:var(--accent);cursor:pointer">¿Cómo obtener?</a></div>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-… o AIzaSy…" autocomplete="off" spellcheck="false"/>
     <div class="modal-warn">⚠️ Tu key se guarda <strong>solo en este navegador</strong> (sessionStorage). No se envía a ningún servidor externo.</div>
     <div class="modal-actions">
       <button class="btn-ghost" id="keyCancelBtn">Cancelar</button>
@@ -675,27 +692,151 @@ $('jobUrlBtn').addEventListener('click',()=>loadFromUrl('jobUrl','jobText','jobU
 $('cvUrl').addEventListener('keydown',e=>{if(e.key==='Enter')loadFromUrl('cvUrl','cvText','cvUrlBtn')});
 $('jobUrl').addEventListener('keydown',e=>{if(e.key==='Enter')loadFromUrl('jobUrl','jobText','jobUrlBtn')});
 
-// API KEY
-const KEY_STORAGE='ats_pro_anthropic_key';
-function getApiKey(){try{return sessionStorage.getItem(KEY_STORAGE)||''}catch{return''}}
-function setApiKey(k){try{sessionStorage.setItem(KEY_STORAGE,k)}catch{}updateKeyStatus()}
-function clearApiKey(){try{sessionStorage.removeItem(KEY_STORAGE)}catch{}updateKeyStatus()}
-function updateKeyStatus(){const k=getApiKey();if(k){$('keyStatusBtn').classList.add('active');$('keyStatusText').textContent='API key · '+k.slice(0,10)+'…';$('apiBanner').classList.add('hidden')}else{$('keyStatusBtn').classList.remove('active');$('keyStatusText').textContent='Sin API key';$('apiBanner').classList.remove('hidden')}}
-function openKeyModal(){$('apiKeyInput').value=getApiKey();$('keyModal').classList.add('show');setTimeout(()=>$('apiKeyInput').focus(),50)}
+// ─── PROVIDER STATE ──────────────────────────────────────────────────────────
+let currentProvider = localStorage.getItem('ats_provider') || 'anthropic';
+function setProvider(p){
+  currentProvider = p;
+  localStorage.setItem('ats_provider', p);
+  $('providerAnthropicBtn').classList.toggle('active', p==='anthropic');
+  $('providerGoogleBtn').classList.toggle('active', p==='google');
+  updateKeyStatus();
+}
+function showHowTab(tab){
+  $('howTabAnthropicContent').style.display = tab==='anthropic' ? '' : 'none';
+  $('howTabGoogleContent').style.display = tab==='google' ? '' : 'none';
+  $('howTabAnthropicBtn').classList.toggle('active', tab==='anthropic');
+  $('howTabGoogleBtn').classList.toggle('active', tab==='google');
+}
+function switchKeyTab(tab){
+  setProvider(tab);
+  $('keyTabAnthropicBtn').classList.toggle('active', tab==='anthropic');
+  $('keyTabGoogleBtn').classList.toggle('active', tab==='google');
+  $('keyTabAnthropicInfo').style.display = tab==='anthropic' ? '' : 'none';
+  $('keyTabGoogleInfo').style.display = tab==='google' ? '' : 'none';
+  $('apiKeyInput').placeholder = tab==='anthropic' ? 'sk-ant-api03-…' : 'AIzaSy…';
+  $('apiKeyInput').value = getApiKey();
+}
+setProvider(currentProvider);
+
+// ─── API KEY ──────────────────────────────────────────────────────────────────
+const KEY_ANTHROPIC = 'ats_pro_anthropic_key';
+const KEY_GOOGLE    = 'ats_pro_google_key';
+function getApiKey(){
+  const k = currentProvider==='google' ? KEY_GOOGLE : KEY_ANTHROPIC;
+  try{return sessionStorage.getItem(k)||''}catch{return''}
+}
+function setApiKey(val){
+  const k = currentProvider==='google' ? KEY_GOOGLE : KEY_ANTHROPIC;
+  try{sessionStorage.setItem(k,val)}catch{}
+  updateKeyStatus();
+}
+function clearApiKey(){
+  try{sessionStorage.removeItem(KEY_ANTHROPIC);sessionStorage.removeItem(KEY_GOOGLE)}catch{}
+  updateKeyStatus();
+}
+function updateKeyStatus(){
+  const k=getApiKey();
+  const label = currentProvider==='google' ? 'Gemini' : 'Claude';
+  if(k){
+    $('keyStatusBtn').classList.add('active');
+    $('keyStatusText').textContent = label+' · '+k.slice(0,10)+'…';
+    $('apiBanner').classList.add('hidden');
+  } else {
+    $('keyStatusBtn').classList.remove('active');
+    $('keyStatusText').textContent='Sin API key';
+    $('apiBanner').classList.remove('hidden');
+  }
+}
+function openKeyModal(){
+  switchKeyTab(currentProvider);
+  $('apiKeyInput').value=getApiKey();
+  $('keyModal').classList.add('show');
+  setTimeout(()=>$('apiKeyInput').focus(),50);
+}
 function closeKeyModal(){$('keyModal').classList.remove('show')}
 $('keyStatusBtn').addEventListener('click',openKeyModal);
 $('keyCancelBtn').addEventListener('click',closeKeyModal);
-$('keySaveBtn').addEventListener('click',()=>{const val=$('apiKeyInput').value.trim();if(!val){toast('API key vacía','Ingresa una key válida.','error');return}setApiKey(val);closeKeyModal();toast('API key guardada','Claude está listo para analizar tu CV.','success')});
+$('keySaveBtn').addEventListener('click',()=>{
+  const val=$('apiKeyInput').value.trim();
+  if(!val){toast('API key vacía','Ingresa una key válida.','error');return}
+  const isGoogle = currentProvider==='google';
+  const isValid = isGoogle ? val.startsWith('AIza') : val.startsWith('sk-ant');
+  if(!isValid){
+    toast('Key inválida', isGoogle ? 'Debe empezar con AIzaSy…' : 'Debe empezar con sk-ant…','error');
+    return;
+  }
+  setApiKey(val);
+  closeKeyModal();
+  const label = isGoogle ? 'Gemini listo' : 'Claude listo';
+  toast('API key guardada', label+' para analizar tu CV.','success');
+});
 $('keyClearBtn').addEventListener('click',()=>{clearApiKey();$('apiKeyInput').value='';toast('API key borrada','','info')});
 $('keyModal').addEventListener('click',e=>{if(e.target.id==='keyModal')closeKeyModal()});
+$('howToKeyModal').addEventListener('click',e=>{if(e.target.id==='howToKeyModal')document.getElementById('howToKeyModal').classList.remove('show')});
 updateKeyStatus();
 
-// CLAUDE STREAM
-async function callClaudeStream(messages,onChunk,maxTokens=2000){const apiKey=getApiKey();if(!apiKey){openKeyModal();throw new Error('No hay API key configurada.')}const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:maxTokens,stream:true,messages})});if(!res.ok){const err=await res.text();let msg='API error '+res.status;try{const j=JSON.parse(err);if(j.error?.message)msg+=': '+j.error.message}catch{msg+=': '+err.slice(0,200)}if(res.status===401)msg+=' — verifica tu API key';throw new Error(msg)}const reader=res.body.getReader();const dec=new TextDecoder();let buf='';while(true){const{done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});const lines=buf.split('\n');buf=lines.pop();for(const line of lines){if(!line.startsWith('data: '))continue;const data=line.slice(6).trim();if(data==='[DONE]')return;try{const ev=JSON.parse(data);if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta')onChunk(ev.delta.text)}catch{}}}}
+// ─── ANTHROPIC STREAM ────────────────────────────────────────────────────────
+async function callAnthropicStream(messages,onChunk,maxTokens=2000){
+  const apiKey=sessionStorage.getItem(KEY_ANTHROPIC)||'';
+  if(!apiKey){openKeyModal();throw new Error('No hay API key de Anthropic.')}
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:maxTokens,stream:true,messages})});
+  if(!res.ok){const err=await res.text();let msg='API error '+res.status;try{const j=JSON.parse(err);if(j.error?.message)msg+=': '+j.error.message}catch{msg+=': '+err.slice(0,200)}if(res.status===401)msg+=' — verifica tu API key';throw new Error(msg)}
+  const reader=res.body.getReader();const dec=new TextDecoder();let buf='';
+  while(true){const{done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});const lines=buf.split('\n');buf=lines.pop();for(const line of lines){if(!line.startsWith('data: '))continue;const data=line.slice(6).trim();if(data==='[DONE]')return;try{const ev=JSON.parse(data);if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta')onChunk(ev.delta.text)}catch{}}}
+}
 
-// CLAUDE JSON
+// ─── GEMINI STREAM ────────────────────────────────────────────────────────────
+async function callGeminiStream(messages,onChunk,maxTokens=2000){
+  const apiKey=sessionStorage.getItem(KEY_GOOGLE)||'';
+  if(!apiKey){openKeyModal();throw new Error('No hay API key de Google Gemini.')}
+  const contents=messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
+  const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse&key='+apiKey;
+  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents,generationConfig:{maxOutputTokens:maxTokens}})});
+  if(!res.ok){const err=await res.text();let msg='Gemini error '+res.status;try{const j=JSON.parse(err);if(j.error?.message)msg+=': '+j.error.message}catch{msg+=': '+err.slice(0,200)}if(res.status===400||res.status===403)msg+=' — verifica tu API key';throw new Error(msg)}
+  const reader=res.body.getReader();const dec=new TextDecoder();let buf='';
+  while(true){const{done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});const lines=buf.split('\n');buf=lines.pop();for(const line of lines){if(!line.startsWith('data: '))continue;const data=line.slice(6).trim();if(!data||data==='[DONE]')continue;try{const ev=JSON.parse(data);const text=ev.candidates?.[0]?.content?.parts?.[0]?.text;if(text)onChunk(text)}catch{}}}
+}
+
+// ─── GEMINI JSON ──────────────────────────────────────────────────────────────
+async function callGeminiJson(messages,maxTokens=6000){
+  const apiKey=sessionStorage.getItem(KEY_GOOGLE)||'';
+  if(!apiKey){openKeyModal();throw new Error('No hay API key de Google Gemini.')}
+  const contents=messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
+  const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+apiKey;
+  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents,generationConfig:{maxOutputTokens:maxTokens,responseMimeType:'application/json'}})});
+  if(!res.ok){const err=await res.text();let msg='Gemini error '+res.status;try{const j=JSON.parse(err);if(j.error?.message)msg+=': '+j.error.message}catch{}throw new Error(msg)}
+  const data=await res.json();
+  let text=data.candidates?.[0]?.content?.parts?.[0]?.text||'{}';
+  text=text.replace(/^```json\s*/,'').replace(/\s*```$/,'').trim();
+  try{return JSON.parse(text)}catch{}try{return JSON.parse(repairJson(text))}catch(e2){throw new Error('JSON inválido de Gemini. Reintenta.')}
+}
+
+// ─── UNIFIED API CALLS ────────────────────────────────────────────────────────
+async function callClaudeStream(messages,onChunk,maxTokens=2000){
+  if(currentProvider==='google') return callGeminiStream(messages,onChunk,maxTokens);
+  return callAnthropicStream(messages,onChunk,maxTokens);
+}
+async function callClaudeJson(messages,maxTokens=6000){
+  if(currentProvider==='google') return callGeminiJson(messages,maxTokens);
+  return callAnthropicJson(messages,maxTokens);
+}
+
+// ─── ANTHROPIC JSON ───────────────────────────────────────────────────────────
 function repairJson(s){s=s.replace(/,(\s*[}\]])/g,'$1');let out='',inStr=false,escape=false;for(const ch of s){if(escape){out+=ch;escape=false;continue}if(ch==='\\'){out+=ch;escape=true;continue}if(ch==='"'){inStr=!inStr;out+=ch;continue}if(inStr&&ch==='\n'){out+='\\n';continue}if(inStr&&ch==='\r'){out+='\\r';continue}if(inStr&&ch==='\t'){out+='\\t';continue}out+=ch}return out}
-async function callClaudeJson(messages,maxTokens=6000){const apiKey=getApiKey();if(!apiKey){openKeyModal();throw new Error('No hay API key configurada.')}const prefilledMessages=[...messages,{role:'assistant',content:'{'}];const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:maxTokens,messages:prefilledMessages})});if(!res.ok){const err=await res.text();let msg='API error '+res.status;try{const j=JSON.parse(err);if(j.error?.message)msg+=': '+j.error.message}catch{msg+=': '+err.slice(0,200)}throw new Error(msg)}const data=await res.json();if(data.stop_reason==='max_tokens')throw new Error('Respuesta cortada por límite de tokens. Acorta el CV/vacante.');let text=data.content?.[0]?.text||'';let jsonStr='{'+text;const lastBrace=jsonStr.lastIndexOf('}');if(lastBrace>0)jsonStr=jsonStr.slice(0,lastBrace+1);try{return JSON.parse(jsonStr)}catch{}try{return JSON.parse(repairJson(jsonStr))}catch(e2){console.error('JSON inválido:',jsonStr);throw new Error('JSON inválido de la IA. Reintenta el análisis.')}}
+async function callAnthropicJson(messages,maxTokens=6000){
+  const apiKey=sessionStorage.getItem(KEY_ANTHROPIC)||'';
+  if(!apiKey){openKeyModal();throw new Error('No hay API key de Anthropic.')}
+  const prefilledMessages=[...messages,{role:'assistant',content:'{'}];
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:maxTokens,messages:prefilledMessages})});
+  if(!res.ok){const err=await res.text();let msg='API error '+res.status;try{const j=JSON.parse(err);if(j.error?.message)msg+=': '+j.error.message}catch{msg+=': '+err.slice(0,200)}throw new Error(msg)}
+  const data=await res.json();
+  if(data.stop_reason==='max_tokens')throw new Error('Respuesta cortada. Acorta el CV/vacante.');
+  let text=data.content?.[0]?.text||'';
+  let jsonStr='{'+text;
+  const lastBrace=jsonStr.lastIndexOf('}');
+  if(lastBrace>0)jsonStr=jsonStr.slice(0,lastBrace+1);
+  try{return JSON.parse(jsonStr)}catch{}try{return JSON.parse(repairJson(jsonStr))}catch(e2){throw new Error('JSON inválido de la IA. Reintenta.')}
+}
 
 // MARKDOWN RENDERER
 function renderMarkdownLite(text){let safe=esc(text);safe=safe.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');safe=safe.replace(/^## (.+)$/gm,'<__SO__><__ST__>$1</__ST__>').replace(/^### (.+)$/gm,'<__SB__>$1</__SB__>');const lines=safe.split('\n');let out='',inList=false;for(const line of lines){const trimmed=line.trim();const isBullet=/^[-•▸]\s+/.test(trimmed);if(isBullet){if(!inList){out+='<ul class="ai-list">';inList=true}out+='<li>'+trimmed.replace(/^[-•▸]\s+/,'')+'</li>'}else{if(inList){out+='</ul>';inList=false}if(trimmed)out+='<p class="ai-paragraph">'+line+'</p>'}}if(inList)out+='</ul>';out=out.replace(/<p class="ai-paragraph"><__SO__><__ST__>(.+?)<\/__ST__><\/p>/g,'<div class="ai-section"><div class="ai-section-title">$1</div>').replace(/<__SO__><__ST__>(.+?)<\/__ST__>/g,'<div class="ai-section"><div class="ai-section-title">$1</div>').replace(/<p class="ai-paragraph"><__SB__>(.+?)<\/__SB__><\/p>/g,'<div style="font-weight:600;color:var(--text);margin:10px 0 6px;font-size:13.5px">$1</div>').replace(/<__SB__>(.+?)<\/__SB__>/g,'<div style="font-weight:600;color:var(--text);margin:10px 0 6px;font-size:13.5px">$1</div>');const open=(out.match(/<div class="ai-section">/g)||[]).length;out+='</div>'.repeat(open);return out}
