@@ -303,6 +303,18 @@
       .question-meta{grid-template-columns:1fr;padding-left:0}
       .header{flex-direction:column}
     }
+    @media(max-width:600px){
+      .wrap{padding:20px 16px}
+      .api-banner{flex-wrap:wrap;gap:8px}
+      .api-banner>div[style*="margin-left:auto"]{margin-left:0!important;width:100%;justify-content:flex-start}
+      #providerSelector{flex-wrap:wrap}
+      .provider-btn{font-size:11px;padding:4px 10px}
+      h1{font-size:clamp(26px,8vw,38px)}
+      .score-card-num{font-size:56px}
+      .upgrade-compare{grid-template-columns:1fr}
+      .modal{padding:20px}
+      .tab{padding:8px 10px;font-size:12px}
+    }
     @media print{
       body{background:white;color:black}
       body::before{display:none}
