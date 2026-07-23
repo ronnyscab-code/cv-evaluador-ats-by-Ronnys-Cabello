@@ -612,24 +612,6 @@
   </div>
 </footer>
 
-<!-- WELCOME MODAL -->
-<div class="welcome-backdrop" id="welcomeBackdrop">
-  <div class="welcome-box">
-    <div class="welcome-logo">🎯</div>
-    <div class="welcome-title">ATS CV Evaluator Pro</div>
-    <div class="welcome-sub">Antes de comenzar, cuéntanos quién eres. Solo necesitamos tu nombre para llevar un registro de usuarios.</div>
-    <div class="welcome-row">
-      <input class="welcome-field" id="wNombre" type="text" placeholder="Nombre" maxlength="60" autocomplete="given-name"/>
-      <input class="welcome-field" id="wApellido" type="text" placeholder="Apellido" maxlength="60" autocomplete="family-name"/>
-    </div>
-    <textarea class="welcome-field" id="wComment" placeholder="¿Tienes alguna sugerencia para mejorar la app? (opcional)" rows="3" maxlength="500" style="resize:vertical"></textarea>
-    <div id="welcomeError" style="display:none;color:var(--bad);font-size:12.5px;text-align:center;margin-top:4px">⚠️ Por favor ingresa tu nombre y apellido para continuar.</div>
-    <button class="welcome-btn" id="welcomeSubmitBtn">Comenzar →</button>
-    <button class="btn-ghost" style="width:100%;margin-top:8px;font-size:12px;opacity:.6" id="welcomeSkipBtn">Saltar registro</button>
-    <div class="welcome-privacy">🔒 Solo registramos tu nombre para uso interno. No compartimos tus datos.</div>
-  </div>
-</div>
-
 <!-- FREE UPGRADE BANNER -->
 <div id="freeUpgradeBanner" style="display:none;margin:24px 0">
   <div class="upgrade-banner">
@@ -1091,52 +1073,6 @@ $('resetBtn').addEventListener('click',()=>location.reload());
 $('sampleCvBtn').addEventListener('click',()=>{$('cvText').value=`ANA PÉREZ\nSantiago, Chile\nana.perez@email.com | +56 9 1234 5678 | linkedin.com/in/anaperez\n\nPERFIL PROFESIONAL\nAnalista de datos con 3 años de experiencia en Excel, SQL y Power BI. Especializada en análisis de KPIs comerciales, automatización de reportes y visualización de datos para áreas de ventas y operaciones.\n\nEXPERIENCIA\nAnalista de Datos | Empresa XYZ | 2022 - Actualidad\n- Desarrollé dashboards en Power BI que redujeron en 30% el tiempo de reporte mensual para 5 áreas.\n- Analicé bases de datos SQL con +500,000 registros para seguimiento de ventas y productividad.\n- Implementé controles de calidad que disminuyeron errores de datos en 18%.\n- Automaticé 12 reportes semanales en Excel con macros VBA, ahorrando 6 horas/semana al equipo.\n\nAsistente de Operaciones | Empresa ABC | 2020 - 2022\n- Elaboré reportes semanales en Excel para 5 áreas operativas con 200+ usuarios.\n- Coordiné indicadores de desempeño y seguimiento de incidencias críticas.\n\nEDUCACIÓN\nIngeniería Comercial | Universidad de Chile | 2020\n\nHABILIDADES\nExcel avanzado, SQL, Power BI, Python básico, análisis de datos, comunicación, trabajo en equipo\n\nIDIOMAS\nEspañol nativo, inglés intermedio`;$('cvText').dispatchEvent(new Event('input'))});
 $('sampleJobBtn').addEventListener('click',()=>{$('jobText').value=`Analista de Datos BI — Empresa Tecnológica\n\nBuscamos un/a Analista de Datos con sólida experiencia en herramientas de visualización y análisis. Serás responsable de crear dashboards estratégicos, analizar KPIs comerciales y operativos, y presentar hallazgos a equipos de negocio y directivos.\n\nResponsabilidades:\n- Diseñar y mantener dashboards en Power BI y Tableau para áreas de ventas, marketing y operaciones\n- Escribir consultas SQL complejas para extracción y transformación de datos\n- Automatizar reportes y flujos de datos con Python o Power Automate\n- Colaborar con equipos de negocio para definir métricas e indicadores clave\n\nRequisitos:\n- 2+ años de experiencia en análisis de datos\n- Dominio avanzado de Excel, SQL y Power BI\n- Deseable Python (pandas, numpy) o R\n- Capacidad de comunicación y storytelling con datos`;$('jobText').dispatchEvent(new Event('input'))});
 
-// ─── REGISTRO + FORMSPREE ─────────────────────────────────────────────────────
-const LS_USER = 'ats_user_reg';
-const FORMSPREE_URL = 'https://formspree.io/f/REEMPLAZA_CON_TU_FORM_ID';
-
-function isRegistered(){try{return JSON.parse(localStorage.getItem(LS_USER)||'{}').registered===true}catch{return false}}
-
-async function sendToFormspree(payload){
-  try{
-    await fetch(FORMSPREE_URL,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});
-  }catch(e){/* silencioso */}
-}
-
-// ─── WELCOME MODAL ────────────────────────────────────────────────────────────
-function closeWelcome(){$('welcomeBackdrop').classList.add('hidden')}
-function initWelcome(){
-  if(isRegistered()){
-    $('welcomeBackdrop').classList.add('hidden');
-    return;
-  }
-  $('welcomeBackdrop').classList.remove('hidden');
-}
-
-$('welcomeSubmitBtn').addEventListener('click', async ()=>{
-  const nombre = ($('wNombre').value||'').trim();
-  const apellido = ($('wApellido').value||'').trim();
-  if(!nombre || !apellido){
-    $('wNombre').style.borderColor='var(--bad)';
-    $('wApellido').style.borderColor='var(--bad)';
-    $('welcomeError').style.display='block';
-    setTimeout(()=>{$('wNombre').style.borderColor='';$('wApellido').style.borderColor='';$('welcomeError').style.display='none'},3000);
-    return;
-  }
-  const comment = ($('wComment').value||'').trim();
-  const userData = {registered:true, nombre, apellido, ts: new Date().toISOString()};
-  localStorage.setItem(LS_USER, JSON.stringify(userData));
-  closeWelcome();
-  await sendToFormspree({tipo:'registro', nombre, apellido, comentario: comment, fecha: userData.ts});
-  toast('¡Bienvenido/a '+nombre+'!','Ya puedes usar el evaluador.','success');
-});
-
-$('welcomeSkipBtn').addEventListener('click',()=>{
-  const userData={registered:true,nombre:'Anónimo',apellido:'',ts:new Date().toISOString()};
-  localStorage.setItem(LS_USER,JSON.stringify(userData));
-  closeWelcome();
-});
-
 // ─── FEEDBACK FAB ─────────────────────────────────────────────────────────────
 $('fabFeedback').addEventListener('click',()=>{
   $('fbComment').value='';
@@ -1156,8 +1092,7 @@ $('fbSubmitBtn').addEventListener('click', async ()=>{
   toast('¡Gracias!','Tu sugerencia fue enviada.','success');
 });
 
-// init
-initWelcome();
+
 </script>
 </body>
 </html>
